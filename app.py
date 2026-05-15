@@ -11,6 +11,27 @@ import secrets
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
+def load_env_file(path=".env"):
+    if not os.path.exists(path):
+        return
+
+    with open(path, "r", encoding="utf-8") as env_file:
+        for raw_line in env_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+load_env_file()
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
 
@@ -35,16 +56,50 @@ INDIA_MAP_CENTER = {
 # =========================
 # DATABASE CONNECTION
 # =========================
+def env_first(*names, default=""):
+    for name in names:
+        value = os.environ.get(name)
+        if value:
+            return value
+    return default
+
+
+def db_config(include_database=True):
+    database_name = env_first("DB_NAME", "MYSQLDATABASE", "MYSQL_DATABASE", default="pgfinder")
+    config = {
+        "host": env_first("DB_HOST", "MYSQLHOST", "MYSQL_HOST", default="localhost"),
+        "user": env_first("DB_USER", "MYSQLUSER", "MYSQL_USER", default="root"),
+        "password": env_first(
+            "DB_PASSWORD",
+            "MYSQLPASSWORD",
+            "MYSQL_ROOT_PASSWORD",
+            "MYSQL_PASSWORD",
+            default=""
+        ),
+    }
+
+    if include_database:
+        config["database"] = database_name
+
+    return config, database_name
+
+
 def db():
+    config, database_name = db_config()
 
-    conn = mysql.connector.connect(
+    try:
+        conn = mysql.connector.connect(**config)
+    except mysql.connector.Error as err:
+        if err.errno != mysql.connector.errorcode.ER_BAD_DB_ERROR:
+            raise
 
-        host=os.environ.get("DB_HOST", "localhost"),
-        user=os.environ.get("DB_USER", "root"),
-        password=os.environ.get("DB_PASSWORD", ""),
-        database=os.environ.get("DB_NAME", "pgfinder")
-
-    )
+        server_config, _ = db_config(include_database=False)
+        setup_conn = mysql.connector.connect(**server_config)
+        setup_cursor = setup_conn.cursor()
+        setup_cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{database_name}`")
+        setup_conn.commit()
+        setup_conn.close()
+        conn = mysql.connector.connect(**config)
 
     return conn
 

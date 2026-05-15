@@ -27,6 +27,29 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 pip install -r requirements.txt
 ```
 
+## Local Development
+
+For your laptop, create a `.env` file in the project root. This file is ignored by git, so it will not be pushed.
+
+```bash
+SECRET_KEY=dev-secret-change-me
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your-local-mysql-password
+DB_NAME=pgfinder
+FLASK_ENV=development
+FLASK_DEBUG=1
+MAX_CONTENT_LENGTH=8388608
+```
+
+Then run:
+
+```powershell
+venv\Scripts\python.exe app.py
+```
+
+The app will create the `pgfinder` database and tables automatically if your local MySQL server is running and the user has permission.
+
 ## Production Start Command
 
 Use this on Linux hosting platforms:
@@ -38,11 +61,6 @@ gunicorn app:app --bind 0.0.0.0:$PORT
 For local Windows testing with your current database password:
 
 ```powershell
-$env:SECRET_KEY="dev-secret"
-$env:DB_HOST="localhost"
-$env:DB_USER="root"
-$env:DB_PASSWORD="your-local-password"
-$env:DB_NAME="pgfinder"
 venv\Scripts\python.exe app.py
 ```
 
