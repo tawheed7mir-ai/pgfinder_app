@@ -1,0 +1,732 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<main class="detail-pro-page">
+
+    {% if request_notice %}
+    <div class="request-success-toast {{ request_notice }}">
+        {% if request_notice in ["sent", "resent"] %}
+        <i class="fa-solid fa-circle-check"></i>
+        {% elif request_notice == "already-pending" %}
+        <i class="fa-solid fa-clock"></i>
+        {% else %}
+        <i class="fa-solid fa-circle-info"></i>
+        {% endif %}
+
+        <span>
+            {% if request_notice == "sent" %}
+            Request sent successfully.
+            {% elif request_notice == "resent" %}
+            Request resent successfully.
+            {% elif request_notice == "already-pending" %}
+            Your request is already pending.
+            {% elif request_notice == "already-accepted" %}
+            Your request was already accepted.
+            {% endif %}
+        </span>
+    </div>
+    {% endif %}
+
+    <section class="detail-pro-shell">
+
+        <div class="detail-pro-gallery">
+            {% if images %}
+            <img class="main-image" src="{{ url_for('static', filename='images/' + images[0]['image']) }}" alt="">
+
+            <div class="thumbs">
+                {% for img in images %}
+                <img onclick="changeImage(this.src)" src="{{ url_for('static', filename='images/' + img['image']) }}" alt="">
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="main-image detail-image-fallback">
+                <i class="fa-solid fa-house-chimney"></i>
+            </div>
+            {% endif %}
+        </div>
+
+        <aside class="detail-pro-info">
+            <span class="detail-kicker">Verified PG listing</span>
+
+            <h1>{{ listing["title"] }}</h1>
+
+            <div class="detail-price">
+                Rs {{ listing["price"] }}
+                <span>/ month</span>
+            </div>
+
+            <div class="detail-location">
+                <i class="fa-solid fa-location-dot"></i>
+                {{ listing["location"] }}
+            </div>
+
+            <p class="detail-description">
+                {{ listing["description"] }}
+            </p>
+
+            <div class="owner-box">
+                <h3>Owner contact</h3>
+                <p><i class="fa-solid fa-phone"></i> {{ owner["phone"] }}</p>
+                <p><i class="fa-solid fa-envelope"></i> {{ owner["email"] }}</p>
+            </div>
+
+            <div class="detail-action-row">
+                <a class="detail-map-btn" target="_blank" rel="noopener" href="https://www.google.com/maps?q={{ listing['latitude'] }},{{ listing['longitude'] }}">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    View Map
+                </a>
+
+                <a class="detail-whatsapp" href="https://wa.me/{{ owner['phone'] }}" target="_blank" rel="noopener">
+                    <i class="fa-brands fa-whatsapp"></i>
+                    WhatsApp
+                </a>
+            </div>
+
+            {% if uid != listing["owner_id"] %}
+
+            <div class="detail-request">
+
+                {% if request_status == "pending" %}
+                <div class="request-state-card pending">
+                    <i class="fa-solid fa-clock"></i>
+                    <div>
+                        <strong>Request pending</strong>
+                        <p>Your request has been sent. Wait for the owner to accept or reject it.</p>
+                    </div>
+                </div>
+
+                {% elif request_status == "accepted" %}
+                <div class="request-state-card accepted">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <div>
+                        <strong>Request accepted</strong>
+                        <p>The owner accepted your request. You can contact them directly.</p>
+                    </div>
+                </div>
+
+                {% elif request_status == "rejected" %}
+                <div class="request-state-card rejected">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                    <div>
+                        <strong>Request rejected</strong>
+                        <p>You can resend a better request with updated contact details.</p>
+                    </div>
+                </div>
+
+                <form class="professional-request-box compact" method="POST" action="/request/{{ listing['id'] }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <input type="text" name="phone" placeholder="Your phone number" required>
+                    <input type="email" name="email" placeholder="Your email address" required>
+                    <textarea name="message" placeholder="Write a new message..." required></textarea>
+                    <button type="submit" class="send-btn">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        Resend Request
+                    </button>
+                </form>
+
+                {% else %}
+                <div class="professional-request-box">
+                    <div class="request-box-head">
+                        <span><i class="fa-solid fa-paper-plane"></i></span>
+                        <div>
+                            <h2>Send booking request</h2>
+                            <p>Share your details so the owner can respond quickly.</p>
+                        </div>
+                    </div>
+
+                    <form action="/request/{{ listing['id'] }}" method="POST">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                        <input type="text" name="phone" placeholder="Your phone number" required>
+                        <input type="email" name="email" placeholder="Your email address" required>
+                        <textarea name="message" placeholder="Tell the owner when you want to visit or move in..." required></textarea>
+                        <button type="submit" class="send-btn">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            Send Request
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+            </div>
+
+            {% else %}
+            <div class="request-state-card accepted">
+                <i class="fa-solid fa-house-user"></i>
+                <div>
+                    <strong>Your listing</strong>
+                    <p>You are viewing your own PG listing.</p>
+                </div>
+            </div>
+            {% endif %}
+
+        </aside>
+
+    </section>
+
+</main>
+
+<style>
+.detail-pro-page{
+    min-height:100vh;
+    padding:46px 5% 90px;
+    background:
+        radial-gradient(circle at 12% 10%, rgba(255,56,92,0.10), transparent 28%),
+        radial-gradient(circle at 86% 10%, rgba(24,169,153,0.12), transparent 30%),
+        linear-gradient(180deg,#f8fafc,#eef4f7);
+}
+
+.detail-pro-shell{
+    width:min(1180px,100%);
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:1.08fr 0.92fr;
+    gap:26px;
+    align-items:start;
+}
+
+.detail-pro-gallery,
+.detail-pro-info{
+    border:1px solid #e8edf3;
+    border-radius:28px;
+    background:white;
+    box-shadow:0 28px 80px rgba(15,23,42,0.09);
+}
+
+.detail-pro-gallery{
+    padding:16px;
+}
+
+.main-image{
+    width:100%;
+    height:520px;
+    object-fit:cover;
+    border-radius:22px;
+}
+
+.detail-image-fallback{
+    display:grid;
+    place-items:center;
+    background:#f1f5f9;
+    color:#94a3b8;
+    font-size:46px;
+}
+
+.thumbs{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(86px,1fr));
+    gap:10px;
+    margin-top:12px;
+}
+
+.thumbs img{
+    width:100%;
+    height:76px;
+    object-fit:cover;
+    border-radius:14px;
+    cursor:pointer;
+}
+
+.detail-pro-info{
+    padding:30px;
+}
+
+.detail-kicker{
+    display:inline-flex;
+    padding:7px 12px;
+    border-radius:999px;
+    background:#ecfdf5;
+    color:#047857;
+    font-size:12px;
+    font-weight:900;
+    text-transform:uppercase;
+}
+
+.detail-pro-info h1{
+    margin:16px 0 10px;
+    color:#111827;
+    font-size:clamp(30px,4vw,48px);
+    line-height:1.08;
+}
+
+.detail-price{
+    color:#ff385c;
+    font-size:34px;
+    font-weight:900;
+}
+
+.detail-price span{
+    color:#94a3b8;
+    font-size:14px;
+}
+
+.detail-location{
+    display:flex;
+    gap:9px;
+    margin-top:10px;
+    color:#475569;
+    font-weight:800;
+    line-height:1.6;
+}
+
+.detail-location i{
+    color:#18a999;
+    margin-top:4px;
+}
+
+.detail-description{
+    margin:18px 0;
+    color:#64748b;
+    line-height:1.8;
+}
+
+.owner-box{
+    padding:18px;
+    border-radius:20px;
+    background:#f8fafc;
+    border:1px solid #e8edf3;
+}
+
+.owner-box h3{
+    margin-bottom:10px;
+}
+
+.owner-box p{
+    display:flex;
+    gap:10px;
+    color:#475569;
+    font-weight:800;
+    margin-top:8px;
+}
+
+.detail-action-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin:16px 0;
+}
+
+.detail-action-row a{
+    min-height:46px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    border-radius:15px;
+    color:white;
+    text-decoration:none;
+    font-weight:900;
+}
+
+.detail-map-btn{
+    background:#111827;
+}
+
+.detail-whatsapp{
+    background:#16a34a;
+}
+
+.professional-request-box,
+.request-state-card{
+    padding:18px;
+    border:1px solid #e8edf3;
+    border-radius:22px;
+    background:white;
+    box-shadow:0 18px 45px rgba(15,23,42,0.06);
+}
+
+.request-box-head{
+    display:flex;
+    gap:12px;
+    margin-bottom:14px;
+}
+
+.request-box-head span{
+    display:grid;
+    place-items:center;
+    width:44px;
+    height:44px;
+    flex:0 0 44px;
+    border-radius:15px;
+    background:#fff1f2;
+    color:#ff385c;
+}
+
+.request-box-head h2{
+    font-size:22px;
+}
+
+.request-box-head p{
+    color:#64748b;
+    line-height:1.6;
+}
+
+.professional-request-box form,
+.professional-request-box.compact{
+    display:grid;
+    gap:12px;
+}
+
+.professional-request-box input,
+.professional-request-box textarea{
+    width:100%;
+    border:1px solid #dbe3ee;
+    border-radius:15px;
+    background:#f8fafc;
+    padding:14px;
+    font:inherit;
+    outline:none;
+}
+
+.professional-request-box textarea{
+    min-height:104px;
+    resize:vertical;
+}
+
+.professional-request-box input:focus,
+.professional-request-box textarea:focus{
+    border-color:#ff385c;
+    background:white;
+    box-shadow:0 0 0 4px rgba(255,56,92,0.10);
+}
+
+.send-btn{
+    min-height:48px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    border:0;
+    border-radius:15px;
+    background:linear-gradient(135deg,#ff385c,#18a999);
+    color:white;
+    font:inherit;
+    font-weight:900;
+    cursor:pointer;
+}
+
+.request-state-card{
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+}
+
+.request-state-card > i{
+    display:grid;
+    place-items:center;
+    width:46px;
+    height:46px;
+    flex:0 0 46px;
+    border-radius:16px;
+}
+
+.request-state-card.pending > i{
+    background:#fff7ed;
+    color:#c2410c;
+}
+
+.request-state-card.accepted > i{
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.request-state-card.rejected > i{
+    background:#fff1f2;
+    color:#be123c;
+}
+
+.request-state-card strong{
+    color:#111827;
+    font-size:17px;
+}
+
+.request-state-card p{
+    margin-top:4px;
+    color:#64748b;
+    line-height:1.6;
+}
+
+.request-state-card + .professional-request-box{
+    margin-top:14px;
+}
+
+.request-success-toast{
+    position:fixed;
+    top:22px;
+    right:22px;
+    z-index:99999;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    max-width:360px;
+    padding:15px 17px;
+    border-radius:18px;
+    background:#111827;
+    color:white;
+    font-weight:900;
+    box-shadow:0 24px 70px rgba(15,23,42,0.25);
+    animation:requestToast 0.35s ease both;
+}
+
+.request-success-toast.sent,
+.request-success-toast.resent{
+    background:linear-gradient(135deg,#059669,#18a999);
+}
+
+@keyframes requestToast{
+    from{opacity:0; transform:translateY(-12px) scale(0.96)}
+    to{opacity:1; transform:translateY(0) scale(1)}
+}
+
+@media(max-width:920px){
+    .detail-pro-shell{
+        grid-template-columns:1fr;
+    }
+
+    .main-image{
+        height:420px;
+    }
+}
+
+@media(max-width:560px){
+    .detail-pro-page{
+        padding:34px 16px 72px;
+    }
+
+    .detail-pro-info{
+        padding:24px;
+    }
+
+    .main-image{
+        height:300px;
+    }
+
+    .detail-action-row{
+        grid-template-columns:1fr;
+    }
+}
+
+/* Compact premium detail polish */
+.detail-pro-page{
+    padding:34px 5% 72px;
+    background:
+        radial-gradient(circle at 14% 6%, rgba(255,56,92,0.08), transparent 26%),
+        radial-gradient(circle at 88% 8%, rgba(24,169,153,0.10), transparent 28%),
+        linear-gradient(180deg,#f8fafc,#f3f7f8);
+}
+
+.detail-pro-shell{
+    width:min(1080px,100%);
+    grid-template-columns:minmax(0, 1fr) 430px;
+    gap:18px;
+}
+
+.detail-pro-gallery,
+.detail-pro-info{
+    border-radius:22px;
+    border-color:#e6eaf0;
+    box-shadow:0 18px 54px rgba(15,23,42,0.08);
+}
+
+.detail-pro-gallery{
+    padding:12px;
+}
+
+.main-image{
+    height:390px;
+    border-radius:17px;
+}
+
+.thumbs{
+    grid-template-columns:repeat(auto-fill,minmax(68px,1fr));
+    gap:8px;
+    margin-top:10px;
+}
+
+.thumbs img{
+    height:58px;
+    border-radius:11px;
+    border:2px solid transparent;
+}
+
+.thumbs img:hover{
+    border-color:#ff385c;
+    transform:translateY(-1px);
+}
+
+.detail-pro-info{
+    padding:22px;
+}
+
+.detail-kicker{
+    padding:6px 10px;
+    font-size:11px;
+}
+
+.detail-pro-info h1{
+    margin:12px 0 8px;
+    font-size:clamp(24px,3vw,34px);
+    line-height:1.12;
+}
+
+.detail-price{
+    font-size:27px;
+    line-height:1.15;
+}
+
+.detail-location{
+    margin-top:8px;
+    font-size:13px;
+    line-height:1.55;
+}
+
+.detail-description{
+    max-height:122px;
+    overflow:auto;
+    margin:14px 0;
+    padding-right:6px;
+    color:#5b6677;
+    font-size:14px;
+    line-height:1.7;
+}
+
+.owner-box{
+    padding:14px;
+    border-radius:16px;
+    margin-bottom:0;
+}
+
+.owner-box h3{
+    margin-bottom:8px;
+    font-size:15px;
+}
+
+.owner-box p{
+    margin-top:6px;
+    font-size:13px;
+    line-height:1.4;
+    word-break:break-word;
+}
+
+.detail-action-row{
+    margin:12px 0;
+    gap:8px;
+}
+
+.detail-action-row a{
+    min-height:40px;
+    border-radius:13px;
+    font-size:13px;
+}
+
+.professional-request-box,
+.request-state-card{
+    padding:14px;
+    border-radius:18px;
+    box-shadow:0 12px 34px rgba(15,23,42,0.06);
+}
+
+.request-box-head{
+    margin-bottom:10px;
+}
+
+.request-box-head span{
+    width:38px;
+    height:38px;
+    flex-basis:38px;
+    border-radius:13px;
+}
+
+.request-box-head h2{
+    font-size:18px;
+}
+
+.request-box-head p{
+    font-size:13px;
+}
+
+.professional-request-box form,
+.professional-request-box.compact{
+    gap:9px;
+}
+
+.professional-request-box input,
+.professional-request-box textarea{
+    padding:11px 12px;
+    border-radius:13px;
+    font-size:13px;
+}
+
+.professional-request-box textarea{
+    min-height:78px;
+}
+
+.send-btn{
+    min-height:42px;
+    border-radius:13px;
+    font-size:13px;
+}
+
+.request-state-card{
+    gap:11px;
+}
+
+.request-state-card > i{
+    width:40px;
+    height:40px;
+    flex-basis:40px;
+    border-radius:13px;
+}
+
+.request-state-card strong{
+    font-size:15px;
+}
+
+.request-state-card p{
+    font-size:13px;
+}
+
+@media(max-width:980px){
+    .detail-pro-shell{
+        grid-template-columns:1fr;
+    }
+
+    .main-image{
+        height:360px;
+    }
+}
+
+@media(max-width:560px){
+    .detail-pro-page{
+        padding:24px 14px 58px;
+    }
+
+    .detail-pro-info{
+        padding:18px;
+    }
+
+    .main-image{
+        height:260px;
+    }
+}
+</style>
+
+<script>
+function changeImage(src){
+    const image = document.querySelector(".main-image");
+    if (image && image.tagName === "IMG") {
+        image.src = src;
+    }
+}
+
+setTimeout(() => {
+    const toast = document.querySelector(".request-success-toast");
+    if (toast) {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(-10px) scale(0.96)";
+        setTimeout(() => toast.remove(), 250);
+    }
+}, 4200);
+</script>
+
+{% endblock %}

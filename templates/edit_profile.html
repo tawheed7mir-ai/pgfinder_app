@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Edit Profile</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family:'Segoe UI';
+    background:linear-gradient(135deg,#0f172a,#1e293b);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+/* CARD */
+
+.card{
+    width:450px;
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,0.1);
+    padding:35px;
+    border-radius:25px;
+    color:white;
+    box-shadow:0 8px 30px rgba(0,0,0,0.3);
+}
+
+/* TITLE */
+
+h1{
+    margin-top:0;
+    text-align:center;
+    margin-bottom:25px;
+}
+
+/* INPUTS */
+
+.input-box{
+    margin-bottom:18px;
+}
+
+label{
+    display:block;
+    margin-bottom:8px;
+    color:#cbd5e1;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    border:none;
+    outline:none;
+    border-radius:12px;
+    background:rgba(255,255,255,0.08);
+    color:white;
+    font-size:15px;
+}
+
+/* BUTTON */
+
+button{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:14px;
+    background:linear-gradient(135deg,#ff385c,#ff7a5c);
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    margin-top:10px;
+    transition:0.3s;
+}
+
+button:hover{
+    transform:translateY(-2px);
+}
+
+/* BACK LINK */
+
+.back{
+    display:block;
+    margin-top:18px;
+    text-align:center;
+    color:#cbd5e1;
+    text-decoration:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<h1>✨ Edit Profile</h1>
+
+<form method="POST">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+<div class="input-box">
+
+<label>Full Name</label>
+
+<input
+name="name"
+value="{{ user['name'] }}"
+required>
+
+</div>
+
+<div class="input-box">
+
+<label>Email</label>
+
+<input
+name="email"
+value="{{ user['email'] }}"
+required>
+
+</div>
+
+<div class="input-box">
+
+<label>Phone</label>
+
+<input
+name="phone"
+value="{{ user['phone'] }}"
+required>
+
+</div>
+
+<button>
+
+Save Changes
+
+</button>
+
+</form>
+
+<a href="/profile" class="back">
+
+← Back to Profile
+
+</a>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,109 @@
+{% for item in data %}
+
+<div class="card">
+
+    <div class="images">
+
+        <div class="slider">
+
+            {% for img in item.images %}
+
+            <img
+            class="slide {% if loop.index == 1 %}active-slide{% endif %}"
+            src="{{ url_for('static', filename='images/' + img['image']) }}">
+
+            {% endfor %}
+
+        </div>
+
+        {% if item.images|length > 1 %}
+
+        <button
+        class="slide-btn prev"
+        onclick="moveSlide(this,-1)">
+            ❮
+        </button>
+
+        <button
+        class="slide-btn next"
+        onclick="moveSlide(this,1)">
+            ❯
+        </button>
+
+        {% endif %}
+
+        {% if item.images|length > 1 %}
+        <div class="image-count">
+            <i class="fa-solid fa-images"></i>
+            {{ item.images|length }}
+        </div>
+        {% endif %}
+
+    </div>
+
+    <div class="card-content">
+
+        <h3>
+            {{ item.listing["title"] }}
+        </h3>
+
+        {% if item.listing.get("room_type") or item.listing.get("sharing_type") %}
+        <div class="listing-card-tags">
+            {% if item.listing.get("room_type") %}
+            <span>{{ item.listing["room_type"]|upper }}</span>
+            {% endif %}
+            {% if item.listing.get("sharing_type") %}
+            <span>{{ item.listing["sharing_type"]|capitalize }}</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="price">
+            ₹{{ item.listing["price"] }}
+        </div>
+
+        <div class="location" title="{{ item.listing['location'] }}">
+    <i class="fa-solid fa-location-dot"></i>
+    <span>{{ item.listing["location"] }}</span>
+</div>
+
+        {% if item.distance_km is defined and item.distance_km is not none %}
+        <div class="distance-pill">
+            <i class="fa-solid fa-route"></i>
+            {{ item.distance_km }} km away
+        </div>
+        {% endif %}
+
+        <div class="card-actions">
+    <a
+    class="map-link"
+    target="_blank"
+    rel="noopener"
+    href="https://www.google.com/maps?q={{ item.listing['latitude'] }},{{ item.listing['longitude'] }}">
+        <i class="fa-solid fa-map-location-dot"></i>
+        Map
+    </a>
+
+    <a
+    href="/listing/{{ item.listing['id'] }}"
+    class="view-btn">
+        Details
+        <i class="fa-solid fa-arrow-right"></i>
+    </a>
+</div>
+
+    </div>
+
+</div>
+
+{% else %}
+
+<div class="listing-empty-state">
+    <i class="fa-solid fa-filter-circle-xmark"></i>
+    <h2>No listings match these filters</h2>
+    <p>Try widening your budget, changing the room type, or searching a nearby area.</p>
+    <a href="/">Clear filters</a>
+</div>
+
+{% endfor %}
+

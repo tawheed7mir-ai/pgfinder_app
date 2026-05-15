@@ -1,0 +1,737 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="hero">
+
+    <div class="hero-slide active">
+        <img src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=1600&auto=format&fit=crop" alt="Shared hostel style room">
+    </div>
+
+    <div class="hero-slide">
+        <img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=1600&auto=format&fit=crop" alt="Simple rented room">
+    </div>
+
+    <div class="hero-slide">
+        <img src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1600&auto=format&fit=crop" alt="Compact rental apartment">
+    </div>
+
+    <div class="hero-slide">
+        <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1600&auto=format&fit=crop" alt="Modern apartment room">
+    </div>
+
+    <div class="hero-slide">
+        <img src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1600&auto=format&fit=crop" alt="Comfortable premium bedroom">
+    </div>
+
+    <div class="hero-slide">
+        <img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=1600&auto=format&fit=crop" alt="Luxury furnished room">
+    </div>
+
+    <div class="overlay"></div>
+
+    <div class="hero-content">
+        <span class="hero-kicker">Verified PGs, rooms, and apartments</span>
+        <h1>Find a stay that fits your routine.</h1>
+        <p>Search real listings, compare rent and amenities, and connect with owners from one polished marketplace.</p>
+        <a href="#listings-section" class="hero-btn">Explore Listings</a>
+    </div>
+
+</div>
+
+<!-- CATEGORIES -->
+<div class="categories">
+
+    <button class="cat {% if not category_filter or category_filter == 'trending' %}active{% endif %}" onclick="filterCategory(this,'trending')"><i class="fa-solid fa-fire"></i> Trending</button>
+    <button class="cat {% if category_filter == 'budget' %}active{% endif %}" onclick="filterCategory(this,'budget')"><i class="fa-solid fa-wallet"></i> Budget</button>
+    <button class="cat {% if category_filter == 'luxury' %}active{% endif %}" onclick="filterCategory(this,'luxury')"><i class="fa-solid fa-bed"></i> Luxury</button>
+    <button class="cat {% if category_filter == 'premium' %}active{% endif %}" onclick="filterCategory(this,'premium')"><i class="fa-solid fa-star"></i> Premium</button>
+
+</div>
+
+<!-- TRUST STATS -->
+<section class="home-stats">
+
+    <div class="stat-chip">
+        <i class="fa-solid fa-house-circle-check"></i>
+        <div>
+            <strong>10,000+</strong>
+            <span>listed stays</span>
+        </div>
+    </div>
+
+    <div class="stat-chip">
+        <i class="fa-solid fa-map-location-dot"></i>
+        <div>
+            <strong>Map-ready</strong>
+            <span>accurate locations</span>
+        </div>
+    </div>
+
+    <div class="stat-chip">
+        <i class="fa-solid fa-shield-heart"></i>
+        <div>
+            <strong>Verified flow</strong>
+            <span>owner managed</span>
+        </div>
+    </div>
+
+    <div class="stat-chip">
+        <i class="fa-solid fa-bolt"></i>
+        <div>
+            <strong>Fast</strong>
+            <span>request system</span>
+        </div>
+    </div>
+
+</section>
+
+<!-- DISCOVERY PANEL -->
+<section class="discovery-panel" aria-labelledby="discovery-title">
+
+    <div class="discovery-top">
+        <div>
+            <span class="section-kicker">Smart discovery</span>
+            <h2 id="discovery-title">Search, filter, and find nearby stays</h2>
+        </div>
+        <div class="filter-result-count">
+            <strong>{{ total }}</strong>
+            <span>{{ "match" if total == 1 else "matches" }}</span>
+        </div>
+    </div>
+
+    <form class="nearby-actions discovery-nearby" id="nearby-form" method="GET" action="/#listings-section">
+        <input type="hidden" name="nearby" value="1">
+        <input type="hidden" name="lat" id="nearby-lat" value="{{ user_lat or '' }}">
+        <input type="hidden" name="lng" id="nearby-lng" value="{{ user_lng or '' }}">
+        {% if category_filter %}
+        <input type="hidden" name="category" value="{{ category_filter }}">
+        {% endif %}
+        {% if search %}
+        <input type="hidden" name="search" value="{{ search }}">
+        {% endif %}
+        {% if room_type %}
+        <input type="hidden" name="room_type" value="{{ room_type }}">
+        {% endif %}
+        {% if sharing %}
+        <input type="hidden" name="sharing" value="{{ sharing }}">
+        {% endif %}
+        {% if min_price %}
+        <input type="hidden" name="min_price" value="{{ min_price }}">
+        {% endif %}
+        {% if max_price %}
+        <input type="hidden" name="max_price" value="{{ max_price }}">
+        {% endif %}
+        {% if sort and sort != "newest" %}
+        <input type="hidden" name="sort" value="{{ sort }}">
+        {% endif %}
+        {% for amenity in amenities %}
+        <input type="hidden" name="amenity" value="{{ amenity }}">
+        {% endfor %}
+
+        <label class="radius-control">
+            <span>Search radius</span>
+            <select name="radius" id="nearby-radius">
+                <option value="3" {% if nearby_radius == 3 %}selected{% endif %}>3 km</option>
+                <option value="5" {% if nearby_radius == 5 %}selected{% endif %}>5 km</option>
+                <option value="10" {% if nearby_radius == 10 %}selected{% endif %}>10 km</option>
+                <option value="20" {% if nearby_radius == 20 %}selected{% endif %}>20 km</option>
+            </select>
+        </label>
+
+        <button type="button" class="nearby-btn" id="nearby-btn">
+            <i class="fa-solid fa-location-crosshairs"></i>
+            Use my location
+        </button>
+
+        {% if nearby_active %}
+        <a href="/" class="nearby-clear">
+            <i class="fa-solid fa-xmark"></i>
+            Clear
+        </a>
+        {% endif %}
+    </form>
+
+    <div class="nearby-status {% if nearby_active %}active{% endif %}" id="nearby-status">
+        {% if nearby_active %}
+            Showing PGs within {{ nearby_radius|int if nearby_radius == nearby_radius|int else nearby_radius }} km, nearest first.
+        {% else %}
+            Your browser will ask permission before sharing location.
+        {% endif %}
+    </div>
+
+    <form class="listing-filters" method="GET" action="/#listings-section">
+
+        {% if nearby_active %}
+        <input type="hidden" name="nearby" value="1">
+        <input type="hidden" name="lat" value="{{ user_lat }}">
+        <input type="hidden" name="lng" value="{{ user_lng }}">
+        <input type="hidden" name="radius" value="{{ nearby_radius }}">
+        {% endif %}
+        {% if category_filter %}
+        <input type="hidden" name="category" value="{{ category_filter }}">
+        {% endif %}
+
+        <label class="filter-field filter-search">
+            <span>Search area or keyword</span>
+            <div>
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" name="search" value="{{ search or '' }}" placeholder="Area, college, Wi-Fi, food...">
+            </div>
+        </label>
+
+        <label class="filter-field">
+            <span>Property type</span>
+            <select name="room_type">
+                <option value="">Any type</option>
+                <option value="pg" {% if room_type == "pg" %}selected{% endif %}>PG</option>
+                <option value="room" {% if room_type == "room" %}selected{% endif %}>Room</option>
+                <option value="studio" {% if room_type == "studio" %}selected{% endif %}>Studio</option>
+                <option value="1bhk" {% if room_type == "1bhk" %}selected{% endif %}>1 BHK</option>
+                <option value="2bhk" {% if room_type == "2bhk" %}selected{% endif %}>2 BHK</option>
+                <option value="3bhk" {% if room_type == "3bhk" %}selected{% endif %}>3 BHK</option>
+            </select>
+        </label>
+
+        <label class="filter-field">
+            <span>Sharing</span>
+            <select name="sharing">
+                <option value="">Any sharing</option>
+                <option value="single" {% if sharing == "single" %}selected{% endif %}>Single / Private</option>
+                <option value="double" {% if sharing == "double" %}selected{% endif %}>Double sharing</option>
+                <option value="triple" {% if sharing == "triple" %}selected{% endif %}>Triple sharing</option>
+                <option value="shared" {% if sharing == "shared" %}selected{% endif %}>Shared</option>
+            </select>
+        </label>
+
+        <label class="filter-field">
+            <span>Min rent</span>
+            <input type="number" name="min_price" value="{{ min_price or '' }}" min="0" placeholder="Rs 5000">
+        </label>
+
+        <label class="filter-field">
+            <span>Max rent</span>
+            <input type="number" name="max_price" value="{{ max_price or '' }}" min="0" placeholder="Rs 15000">
+        </label>
+
+        <label class="filter-field">
+            <span>Sort by</span>
+            <select name="sort">
+                <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest first</option>
+                <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>Price: low to high</option>
+                <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>Price: high to low</option>
+            </select>
+        </label>
+
+        <div class="amenity-filter-group">
+            <span>Popular features</span>
+            <div>
+                <label><input type="checkbox" name="amenity" value="wifi" {% if "wifi" in amenities %}checked{% endif %}><span>Wi-Fi</span></label>
+                <label><input type="checkbox" name="amenity" value="food" {% if "food" in amenities %}checked{% endif %}><span>Food</span></label>
+                <label><input type="checkbox" name="amenity" value="parking" {% if "parking" in amenities %}checked{% endif %}><span>Parking</span></label>
+                <label><input type="checkbox" name="amenity" value="ac" {% if "ac" in amenities %}checked{% endif %}><span>AC</span></label>
+                <label><input type="checkbox" name="amenity" value="laundry" {% if "laundry" in amenities %}checked{% endif %}><span>Laundry</span></label>
+                <label><input type="checkbox" name="amenity" value="attached_bath" {% if "attached_bath" in amenities %}checked{% endif %}><span>Attached bath</span></label>
+            </div>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="filter-apply-btn">
+                <i class="fa-solid fa-sliders"></i>
+                Apply Filters
+            </button>
+            {% if filters_active or nearby_active or category_filter %}
+            <a href="/" class="filter-reset-btn">
+                <i class="fa-solid fa-rotate-left"></i>
+                Reset
+            </a>
+            {% endif %}
+        </div>
+
+    </form>
+
+</section>
+
+<!-- LISTINGS SECTION -->
+<section id="listings-section">
+
+    <div class="listings-section-head">
+        <div>
+            <span class="section-kicker">Available stays</span>
+            <h2>Explore spaces ready to compare</h2>
+        </div>
+        <a href="/all-listings" class="expand-listings-trigger">
+            View all
+            <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    </div>
+
+    <div class="container" id="listing-container">
+        {% include "listings_partial.html" %}
+    </div>
+
+</section>
+
+{% if total > 4 and not filters_active and not nearby_active and not category_filter %}
+<div class="view-more-container">
+    <button type="button" class="view-more-btn expand-listings-trigger">
+        <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+        View More Listings
+    </button>
+</div>
+{% endif %}
+
+<!-- HOW IT WORKS -->
+<section class="workflow-section">
+
+    <div class="workflow-head">
+        <span class="section-kicker">Simple booking journey</span>
+        <h1>From search to stay in minutes</h1>
+        <p>PG Finder keeps the important actions clear, fast, and beautifully organized.</p>
+    </div>
+
+    <div class="workflow-grid">
+
+        <div class="workflow-card">
+            <div class="step-number">01</div>
+            <i class="fa-solid fa-magnifying-glass-location"></i>
+            <h3>Search by place</h3>
+            <p>Explore stays around locations that match your college, office, or daily route.</p>
+        </div>
+
+        <div class="workflow-card">
+            <div class="step-number">02</div>
+            <i class="fa-solid fa-images"></i>
+            <h3>Compare real details</h3>
+            <p>Check photos, rent, map links, and listing descriptions before contacting anyone.</p>
+        </div>
+
+        <div class="workflow-card">
+            <div class="step-number">03</div>
+            <i class="fa-solid fa-paper-plane"></i>
+            <h3>Send a request</h3>
+            <p>Contact the owner directly through the listing and track the request status.</p>
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ABOUT -->
+<section class="about about-pro">
+
+    <div class="about-shell">
+
+        <div class="about-title">
+            <span class="section-kicker">Built for smarter PG discovery</span>
+            <h1>Why Choose PG Finder?</h1>
+            <p>Find verified stays, compare real details, and connect with owners without the usual back-and-forth.</p>
+        </div>
+
+        <div class="about-dashboard">
+
+            <div class="about-panel about-panel-main">
+                <div class="panel-icon">
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                </div>
+                <h2>Accurate location-first search</h2>
+                <p>
+                    Listings are centered around practical details students and professionals actually need:
+                    map position, pricing, photos, owner contact, and availability signals.
+                </p>
+                <div class="about-stats">
+                    <div>
+                        <strong>4-step</strong>
+                        <span>listing flow</span>
+                    </div>
+                    <div>
+                        <strong>24/7</strong>
+                        <span>browse access</span>
+                    </div>
+                    <div>
+                        <strong>Direct</strong>
+                        <span>owner reach</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="about-feature-list">
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h3>Verified Listings</h3>
+                    <p>Browse PGs with clear images, owner details, and location context.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fa-solid fa-comments"></i>
+                    </div>
+                    <h3>Direct Communication</h3>
+                    <p>Send requests and connect with owners from the same listing view.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                    </div>
+                    <h3>Nearby Locations</h3>
+                    <p>Search around the places that matter most to your daily routine.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fa-solid fa-user-lock"></i>
+                    </div>
+                    <h3>Safe & Secure</h3>
+                    <p>Role-based access keeps owners, seekers, listings, and requests organized.</p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="about-strip">
+            <span><i class="fa-solid fa-circle-check"></i> Real listing photos</span>
+            <span><i class="fa-solid fa-circle-check"></i> Map-backed locations</span>
+            <span><i class="fa-solid fa-circle-check"></i> Budget and premium filters</span>
+            <span><i class="fa-solid fa-circle-check"></i> Clean owner workflow</span>
+        </div>
+
+    </div>
+
+</section>
+
+<div class="about about-legacy">
+
+    <div class="about-title">
+        <h1>Why Choose PG Finder? 🚀</h1>
+        <p>Modern way to discover safe, affordable and premium PGs nearby</p>
+    </div>
+
+    <div class="features">
+
+        <div class="feature-card">
+            <h3>Verified Listings</h3>
+            <p>Trusted PGs with images & contact.</p>
+        </div>
+
+        <div class="feature-card">
+            <h3>Direct Communication</h3>
+            <p>Contact owners instantly.</p>
+        </div>
+
+        <div class="feature-card">
+            <h3>Nearby Locations</h3>
+            <p>Search PGs easily.</p>
+        </div>
+
+        <div class="feature-card">
+            <h3>Safe & Secure</h3>
+            <p>Role-based system.</p>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ⭐ TESTIMONIALS (FIXED - ALWAYS VISIBLE) -->
+<!-- ⭐ TESTIMONIALS -->
+<!-- OWNER CTA -->
+<section class="owner-cta">
+
+    <div class="owner-cta-content">
+        <span class="section-kicker">For PG owners</span>
+        <h1>List your property with a premium digital presence.</h1>
+        <p>Add photos, accurate map location, rent, and room details so seekers can discover your PG faster.</p>
+    </div>
+
+    <div class="owner-cta-actions">
+        {% if session.get('role') in ['owner', 'admin'] %}
+        <a href="/add" class="cta-primary">
+            <i class="fa-solid fa-plus"></i>
+            Add Listing
+        </a>
+        {% else %}
+        <a href="/signup" class="cta-primary">
+            <i class="fa-solid fa-user-plus"></i>
+            Join as Owner
+        </a>
+        {% endif %}
+
+        <a href="/contact" class="cta-secondary">
+            <i class="fa-solid fa-headset"></i>
+            Contact Support
+        </a>
+    </div>
+
+</section>
+
+<section class="testimonials">
+
+    <div class="testimonial-title">
+        <h1>What Our Users Say ❤️</h1>
+        <p>Real feedback from students & professionals</p>
+    </div>
+
+    <div class="testimonial-grid">
+
+        <!-- CARD 1 -->
+        <div class="testimonial-card">
+
+            <div class="profile">
+                <img src="https://randomuser.me/api/portraits/men/32.jpg">
+                <div class="profile-info">
+                    <h3>Ayaan Khan</h3>
+                    <p>Student • Srinagar</p>
+                </div>
+            </div>
+
+            <div class="stars">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+            </div>
+
+            <p class="review">
+                PG Finder helped me find a clean PG within 2 days!
+            </p>
+
+        </div>
+
+        <!-- CARD 2 -->
+        <div class="testimonial-card">
+
+            <div class="profile">
+                <img src="https://randomuser.me/api/portraits/women/44.jpg">
+                <div class="profile-info">
+                    <h3>Sara Mir</h3>
+                    <p>Software Engineer</p>
+                </div>
+            </div>
+
+            <div class="stars">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star-half-stroke"></i>
+            </div>
+
+            <p class="review">
+                Super smooth UI and great experience!
+            </p>
+
+        </div>
+
+        <!-- CARD 3 -->
+        <div class="testimonial-card">
+
+            <div class="profile">
+                <img src="https://randomuser.me/api/portraits/men/65.jpg">
+                <div class="profile-info">
+                    <h3>Zaid Ahmad</h3>
+                    <p>College Student</p>
+                </div>
+            </div>
+
+            <div class="stars">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-regular fa-star"></i>
+            </div>
+
+            <p class="review">
+                Great platform for finding PGs easily.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- FIXED CATEGORY SCRIPT -->
+<script>
+
+let activeBtn = document.querySelector(".cat.active");
+
+async function filterCategory(btn, name) {
+
+    const container = document.getElementById("listing-container");
+    container.classList.remove("expanded-listings");
+
+    if (activeBtn) activeBtn.classList.remove("active");
+    btn.classList.add("active");
+    activeBtn = btn;
+
+    container.innerHTML = `<div style="padding:30px;text-align:center;">Loading...</div>`;
+
+    const params = new URLSearchParams(window.location.search);
+
+    if (name === "trending") {
+        params.delete("category");
+    } else {
+        params.set("category", name);
+    }
+
+    const query = params.toString();
+    const url = query ? `/?${query}` : "/";
+
+    const res = await fetch(url, {
+        headers: {
+            "X-Requested-With": "XMLHttpRequest"
+        }
+    });
+    const html = await res.text();
+
+    container.innerHTML = html;
+
+    const totalCount = res.headers.get("X-Total-Count");
+    const countBox = document.querySelector(".filter-result-count");
+
+    if (totalCount && countBox) {
+        countBox.innerHTML = `
+            <strong>${totalCount}</strong>
+            <span>${Number(totalCount) === 1 ? "match" : "matches"}</span>
+        `;
+    }
+
+    window.history.replaceState({}, "", `${url}#listings-section`);
+
+    document.getElementById("listings-section")
+        .scrollIntoView({ behavior: "smooth" });
+
+}
+
+async function expandListings(event) {
+    event.preventDefault();
+
+    const trigger = event.currentTarget;
+    const container = document.getElementById("listing-container");
+    const viewMoreContainer = document.querySelector(".view-more-container");
+
+    trigger.setAttribute("aria-busy", "true");
+    trigger.classList.add("loading");
+    container.classList.add("loading-listings");
+
+    const originalHtml = trigger.innerHTML;
+    trigger.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Loading listings`;
+
+    try {
+        const res = await fetch("/all-listings", {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        });
+
+        const html = await res.text();
+        container.innerHTML = html;
+        container.classList.add("expanded-listings");
+
+        if (viewMoreContainer) {
+            viewMoreContainer.remove();
+        }
+
+        document.getElementById("listings-section")
+            .scrollIntoView({ behavior: "smooth" });
+    } catch (error) {
+        trigger.innerHTML = originalHtml;
+        trigger.classList.remove("loading");
+        trigger.removeAttribute("aria-busy");
+    } finally {
+        container.classList.remove("loading-listings");
+    }
+}
+
+document.querySelectorAll(".expand-listings-trigger").forEach((trigger) => {
+    trigger.addEventListener("click", expandListings);
+});
+
+</script>
+
+
+
+<script>
+
+const heroSlides = document.querySelectorAll(".hero-slide");
+
+let heroIndex = 0;
+
+function showHeroSlide() {
+
+    // REMOVE ACTIVE
+    heroSlides.forEach(slide => {
+        slide.classList.remove("active");
+    });
+
+    // NEXT SLIDE
+    heroIndex++;
+
+    if (heroIndex >= heroSlides.length) {
+        heroIndex = 0;
+    }
+
+    // SHOW ACTIVE
+    heroSlides[heroIndex].classList.add("active");
+}
+
+// CHANGE EVERY 2.8 SECONDS
+setInterval(showHeroSlide, 2800);
+
+</script>
+
+<script>
+
+const nearbyBtn = document.getElementById("nearby-btn");
+const nearbyStatus = document.getElementById("nearby-status");
+const nearbyForm = document.getElementById("nearby-form");
+const nearbyLat = document.getElementById("nearby-lat");
+const nearbyLng = document.getElementById("nearby-lng");
+
+if (nearbyBtn) {
+    nearbyBtn.addEventListener("click", () => {
+        if (!navigator.geolocation) {
+            nearbyStatus.textContent = "Location search is not supported by this browser.";
+            nearbyStatus.classList.add("error");
+            return;
+        }
+
+        nearbyBtn.disabled = true;
+        nearbyStatus.textContent = "Getting your current location...";
+        nearbyStatus.classList.remove("error");
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                nearbyLat.value = position.coords.latitude;
+                nearbyLng.value = position.coords.longitude;
+                const params = new URLSearchParams(new FormData(nearbyForm));
+                window.location.href = `/?${params.toString()}#listings-section`;
+            },
+            () => {
+                nearbyBtn.disabled = false;
+                nearbyStatus.textContent = "Location permission was blocked. Please allow it and try again.";
+                nearbyStatus.classList.add("error");
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            }
+        );
+    });
+}
+
+</script>
+
+{% endblock %}
+
+
+

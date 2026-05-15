@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signup | PG Finder</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+*{box-sizing:border-box}
+
+body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Poppins",sans-serif;
+    background:#f7f9fc;
+    color:#111827;
+}
+
+.auth-page{
+    min-height:100vh;
+    display:grid;
+    grid-template-columns:0.95fr 1.05fr;
+}
+
+.auth-visual{
+    position:relative;
+    padding:48px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    background:
+        linear-gradient(135deg,rgba(15,23,42,0.82),rgba(255,56,92,0.42)),
+        url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1600&auto=format&fit=crop");
+    background-size:cover;
+    background-position:center;
+    color:white;
+}
+
+.auth-visual::after{
+    content:"";
+    position:absolute;
+    inset:24px;
+    border:1px solid rgba(255,255,255,0.16);
+    border-radius:28px;
+}
+
+.brand{
+    position:relative;
+    z-index:1;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    width:max-content;
+    padding:7px 14px 7px 7px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.12);
+    color:white;
+    text-decoration:none;
+    font-weight:800;
+}
+
+.brand span{
+    display:grid;
+    place-items:center;
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    background:#ff385c;
+}
+
+.visual-copy{
+    position:relative;
+    z-index:1;
+}
+
+.visual-copy h1{
+    margin:0 0 16px;
+    font-size:clamp(40px,6vw,70px);
+    line-height:1;
+}
+
+.visual-copy p{
+    max-width:520px;
+    color:rgba(255,255,255,0.82);
+    font-size:18px;
+    line-height:1.8;
+}
+
+.auth-panel{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:36px;
+}
+
+.auth-card{
+    width:min(480px,100%);
+    padding:34px;
+    border:1px solid #e8edf3;
+    border-radius:26px;
+    background:white;
+    box-shadow:0 28px 80px rgba(15,23,42,0.10);
+}
+
+.auth-card h2{
+    margin:0 0 8px;
+    font-size:32px;
+}
+
+.auth-card > p{
+    margin:0 0 22px;
+    color:#64748b;
+}
+
+.field{
+    position:relative;
+    margin-top:13px;
+}
+
+.field i{
+    position:absolute;
+    left:15px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#94a3b8;
+}
+
+.field input,
+.field select{
+    width:100%;
+    min-height:52px;
+    padding:0 15px 0 44px;
+    border:1px solid #dbe3ee;
+    border-radius:15px;
+    background:white;
+    font:inherit;
+    outline:none;
+    transition:0.2s;
+}
+
+.field input:focus,
+.field select:focus{
+    border-color:#ff385c;
+    box-shadow:0 0 0 4px rgba(255,56,92,0.10);
+}
+
+.auth-btn{
+    width:100%;
+    min-height:52px;
+    margin-top:18px;
+    border:0;
+    border-radius:15px;
+    background:linear-gradient(135deg,#ff385c,#18a999);
+    color:white;
+    font:inherit;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.auth-switch{
+    margin-top:20px;
+    text-align:center;
+    color:#64748b;
+    font-size:14px;
+}
+
+.auth-switch a{
+    color:#ff385c;
+    font-weight:800;
+    text-decoration:none;
+}
+
+@media(max-width:900px){
+    .auth-page{grid-template-columns:1fr}
+    .auth-visual{min-height:34vh}
+}
+
+@media(max-width:560px){
+    .auth-visual{padding:30px}
+    .auth-panel{padding:22px}
+    .auth-card{padding:26px}
+}
+</style>
+</head>
+
+<body>
+<main class="auth-page">
+    <section class="auth-visual">
+        <a class="brand" href="/">
+            <span>PG</span>
+            Finder
+        </a>
+
+        <div class="visual-copy">
+            <h1>Create your space.</h1>
+            <p>Join as a seeker to request rooms or as an owner to publish beautiful, map-ready PG listings.</p>
+        </div>
+    </section>
+
+    <section class="auth-panel">
+        <div class="auth-card">
+            <h2>Create Account</h2>
+            <p>Start your PG Finder journey.</p>
+
+            <form method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <div class="field">
+                    <i class="fa-solid fa-user"></i>
+                    <input name="name" placeholder="Full name" required>
+                </div>
+
+                <div class="field">
+                    <i class="fa-solid fa-envelope"></i>
+                    <input name="email" placeholder="Email address" required>
+                </div>
+
+                <div class="field">
+                    <i class="fa-solid fa-phone"></i>
+                    <input name="phone" placeholder="Phone number" required>
+                </div>
+
+                <div class="field">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+
+                <div class="field">
+                    <i class="fa-solid fa-user-tag"></i>
+                    <select name="role">
+                        <option value="user">User</option>
+                        <option value="owner">Owner</option>
+                    </select>
+                </div>
+
+                <button class="auth-btn">Create Account</button>
+            </form>
+
+            <div class="auth-switch">
+                Already have an account? <a href="/login">Login</a>
+            </div>
+        </div>
+    </section>
+</main>
+</body>
+</html>

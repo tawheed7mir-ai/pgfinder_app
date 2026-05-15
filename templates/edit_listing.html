@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="edit-listing-page">
+
+    <div class="edit-listing-shell">
+
+        <div class="edit-listing-head">
+            <span class="section-kicker">Owner listing studio</span>
+            <h1>Edit your PG listing</h1>
+            <p>Update the core details, keep the current photos, or upload new images to replace them.</p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="edit-listing-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+            <div class="edit-form-card">
+
+                <label>
+                    <span>Listing title</span>
+                    <input
+                    type="text"
+                    name="title"
+                    value="{{ listing.title }}"
+                    required>
+                </label>
+
+                <label>
+                    <span>Monthly price</span>
+                    <input
+                    type="text"
+                    name="price"
+                    value="{{ listing.price }}"
+                    required>
+                </label>
+
+                <label>
+                    <span>Property type</span>
+                    <select name="room_type" required>
+                        <option value="">Select type</option>
+                        <option value="pg" {% if listing.get("room_type") == "pg" %}selected{% endif %}>PG</option>
+                        <option value="room" {% if listing.get("room_type") == "room" %}selected{% endif %}>Room</option>
+                        <option value="studio" {% if listing.get("room_type") == "studio" %}selected{% endif %}>Studio</option>
+                        <option value="1bhk" {% if listing.get("room_type") == "1bhk" %}selected{% endif %}>1 BHK</option>
+                        <option value="2bhk" {% if listing.get("room_type") == "2bhk" %}selected{% endif %}>2 BHK</option>
+                        <option value="3bhk" {% if listing.get("room_type") == "3bhk" %}selected{% endif %}>3 BHK</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Sharing type</span>
+                    <select name="sharing_type" required>
+                        <option value="">Select sharing</option>
+                        <option value="single" {% if listing.get("sharing_type") == "single" %}selected{% endif %}>Single / Private</option>
+                        <option value="double" {% if listing.get("sharing_type") == "double" %}selected{% endif %}>Double sharing</option>
+                        <option value="triple" {% if listing.get("sharing_type") == "triple" %}selected{% endif %}>Triple sharing</option>
+                        <option value="shared" {% if listing.get("sharing_type") == "shared" %}selected{% endif %}>Shared</option>
+                    </select>
+                </label>
+
+                {% set selected_amenities = (listing.get("amenities") or "").split(",") %}
+                <div class="edit-amenities">
+                    <span>Amenities</span>
+                    <div>
+                        <label><input type="checkbox" name="amenities" value="wifi" {% if "wifi" in selected_amenities %}checked{% endif %}><span>Wi-Fi</span></label>
+                        <label><input type="checkbox" name="amenities" value="food" {% if "food" in selected_amenities %}checked{% endif %}><span>Food</span></label>
+                        <label><input type="checkbox" name="amenities" value="parking" {% if "parking" in selected_amenities %}checked{% endif %}><span>Parking</span></label>
+                        <label><input type="checkbox" name="amenities" value="ac" {% if "ac" in selected_amenities %}checked{% endif %}><span>AC</span></label>
+                        <label><input type="checkbox" name="amenities" value="laundry" {% if "laundry" in selected_amenities %}checked{% endif %}><span>Laundry</span></label>
+                        <label><input type="checkbox" name="amenities" value="attached_bath" {% if "attached_bath" in selected_amenities %}checked{% endif %}><span>Attached bath</span></label>
+                    </div>
+                </div>
+
+                <label>
+                    <span>Location</span>
+                    <input
+                    type="text"
+                    name="location"
+                    value="{{ listing.location }}"
+                    required>
+                </label>
+
+                <label>
+                    <span>Description</span>
+                    <textarea
+                    name="description"
+                    required>{{ listing.description }}</textarea>
+                </label>
+
+            </div>
+
+            <div class="edit-media-card">
+
+                <div class="edit-card-title">
+                    <i class="fa-solid fa-images"></i>
+                    <div>
+                        <h2>Listing images</h2>
+                        <p>Choose new images only if you want to replace the current gallery.</p>
+                    </div>
+                </div>
+
+                <div class="current-images">
+                    {% if images %}
+                        {% for image in images %}
+                        <img src="{{ url_for('static', filename='images/' + image.image) }}" alt="Listing image">
+                        {% endfor %}
+                    {% else %}
+                        <div class="image-empty">
+                            <i class="fa-regular fa-image"></i>
+                            <span>No images added yet</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <label class="edit-upload-box">
+                    <input
+                    type="file"
+                    name="images"
+                    accept="image/*"
+                    multiple
+                    onchange="previewEditImages(event)">
+
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <strong>Upload replacement images</strong>
+                    <span>PNG, JPG, WEBP, or AVIF. Selecting files will replace the current gallery.</span>
+                </label>
+
+                <div class="preview-container edit-preview" id="editPreviewContainer">
+                    <div class="preview-empty">
+                        <i class="fa-regular fa-images"></i>
+                        <span>New image previews will appear here</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="edit-save-btn">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Save Changes
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</section>
+
+<script>
+function previewEditImages(event) {
+    const preview = document.getElementById("editPreviewContainer");
+    const files = Array.from(event.target.files);
+
+    preview.innerHTML = "";
+
+    if (!files.length) {
+        preview.innerHTML = `
+            <div class="preview-empty">
+                <i class="fa-regular fa-images"></i>
+                <span>New image previews will appear here</span>
+            </div>
+        `;
+        return;
+    }
+
+    files.forEach((file) => {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            const item = document.createElement("div");
+            item.className = "preview-item";
+            item.innerHTML = `<img src="${e.target.result}" alt="Selected image preview">`;
+            preview.appendChild(item);
+        };
+
+        reader.readAsDataURL(file);
+    });
+}
+</script>
+
+{% endblock %}

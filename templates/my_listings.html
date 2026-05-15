@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<main class="owner-listings-page">
+
+    <section class="owner-listings-hero">
+        <div>
+            <span class="section-kicker">Owner portfolio</span>
+            <h1>My listings</h1>
+            <p>Manage your PG rooms, improve photos, check map pins, and keep every listing ready for incoming requests.</p>
+        </div>
+
+        <div class="owner-listings-actions">
+            <a href="/" class="owner-listing-link">
+                <i class="fa-solid fa-arrow-left"></i>
+                Home
+            </a>
+            <a href="/add" class="owner-listing-link primary">
+                <i class="fa-solid fa-plus"></i>
+                Add Listing
+            </a>
+        </div>
+    </section>
+
+    <section class="owner-listing-stats">
+        <div>
+            <span>Total listings</span>
+            <strong>{{ data|length }}</strong>
+        </div>
+        <div>
+            <span>Published</span>
+            <strong>{{ data|length }}</strong>
+        </div>
+        <div>
+            <span>Map ready</span>
+            <strong>{{ data|selectattr("listing.latitude")|list|length }}</strong>
+        </div>
+    </section>
+
+    {% if data|length == 0 %}
+
+    <section class="owner-listing-empty">
+        <i class="fa-regular fa-building"></i>
+        <h2>No listings yet</h2>
+        <p>Create your first PG listing with photos, rent, description, and accurate map location.</p>
+        <a href="/add">
+            <i class="fa-solid fa-plus"></i>
+            Add first listing
+        </a>
+    </section>
+
+    {% else %}
+
+    <section class="owner-listings-grid">
+
+        {% for item in data %}
+        <article class="owner-listing-card">
+
+            <div class="owner-listing-media">
+                {% if item.images|length > 0 %}
+                <img src="{{ url_for('static', filename='images/' + item.images[0]['image']) }}" alt="">
+                {% else %}
+                <div class="owner-listing-fallback">
+                    <i class="fa-solid fa-house-chimney"></i>
+                </div>
+                {% endif %}
+
+                <span class="owner-listing-badge">
+                    <i class="fa-solid fa-circle-check"></i>
+                    Active
+                </span>
+
+                <span class="owner-image-count">
+                    <i class="fa-regular fa-images"></i>
+                    {{ item.images|length }}
+                </span>
+            </div>
+
+            <div class="owner-listing-content">
+                <h2>{{ item.listing["title"] }}</h2>
+
+                <div class="owner-listing-price">
+                    Rs {{ item.listing["price"] }}
+                    <span>/ month</span>
+                </div>
+
+                <p class="owner-listing-location">
+                    <i class="fa-solid fa-location-dot"></i>
+                    {{ item.listing["location"].split(",")[0] }}
+                </p>
+
+                {% if item.listing["description"] %}
+                <p class="owner-listing-description">
+                    {{ item.listing["description"][:120] }}{% if item.listing["description"]|length > 120 %}...{% endif %}
+                </p>
+                {% endif %}
+
+                <div class="owner-listing-tools">
+                    <a target="_blank" rel="noopener" href="https://www.google.com/maps?q={{ item.listing['latitude'] }},{{ item.listing['longitude'] }}">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                        Map
+                    </a>
+                    <a href="/listing/{{ item.listing['id'] }}">
+                        <i class="fa-regular fa-eye"></i>
+                        View
+                    </a>
+                </div>
+
+                <div class="owner-listing-card-actions">
+                    <a href="/edit/{{ item.listing['id'] }}" class="owner-edit-btn">
+                        <i class="fa-solid fa-pen"></i>
+                        Edit
+                    </a>
+
+                    <button type="button" class="owner-delete-btn" onclick="openDeleteModal('{{ item.listing['id'] }}')">
+                        <i class="fa-solid fa-trash"></i>
+                        Delete
+                    </button>
+                </div>
+            </div>
+
+        </article>
+        {% endfor %}
+
+    </section>
+
+    {% endif %}
+
+    <div id="deleteModal" class="owner-delete-modal">
+        <div class="owner-delete-box">
+            <div class="delete-icon">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+
+            <h2>Delete listing?</h2>
+            <p>This will remove the listing, its images, and related requests. This action cannot be undone.</p>
+
+            <form id="deleteListingForm" class="owner-delete-actions" method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <button type="button" onclick="closeModal()">Cancel</button>
+                <button class="owner-delete-confirm" type="submit">Delete Listing</button>
+            </form>
+        </div>
+    </div>
+
+</main>
+
+<script>
+function openDeleteModal(id){
+    document.getElementById("deleteModal").classList.add("active");
+    document.getElementById("deleteListingForm").action = "/delete/" + id;
+}
+
+function closeModal(){
+    document.getElementById("deleteModal").classList.remove("active");
+}
+
+window.addEventListener("click", function(event){
+    const modal = document.getElementById("deleteModal");
+    if(event.target === modal){
+        closeModal();
+    }
+});
+</script>
+
+{% endblock %}

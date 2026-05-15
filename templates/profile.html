@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<main class="profile-page">
+
+    <section class="profile-shell">
+
+        <div class="profile-hero-card">
+
+            <div class="profile-identity">
+                <div class="profile-avatar-xl">
+                    {{ user.name[0] | upper }}
+                </div>
+
+                <div>
+                    <span class="profile-kicker">Account overview</span>
+                    <h1>{{ user.name }}</h1>
+                    <div class="profile-meta">
+                        <span class="role-badge">{{ user.role }}</span>
+                        <span>ID #{{ user.id }}</span>
+                    </div>
+                    <p>Manage your account, requests, listings, and profile details from one clean dashboard.</p>
+                </div>
+            </div>
+
+            <div class="profile-quick-actions">
+                <a href="/edit-profile" class="profile-action dark">
+                    <i class="fa-solid fa-pen"></i>
+                    Edit Profile
+                </a>
+
+                {% if user.role == "user" %}
+                <a href="/my-requests" class="profile-action accent">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    My Requests
+                </a>
+                {% endif %}
+
+                {% if user.role in ["owner", "admin"] %}
+                <a href="/my-listings" class="profile-action accent">
+                    <i class="fa-solid fa-building-user"></i>
+                    My Listings
+                </a>
+                {% endif %}
+
+                {% if user.role == "admin" %}
+                <a href="/admin" class="profile-action soft">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Admin Panel
+                </a>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <div class="profile-grid">
+
+            <section class="profile-panel stats-panel">
+                <div class="panel-heading">
+                    <h2>Activity</h2>
+                    <p>Your current PG Finder activity snapshot.</p>
+                </div>
+
+                <div class="profile-stats">
+                    <div class="profile-stat">
+                        <i class="fa-solid fa-list-check"></i>
+                        <strong>{{ total_listings }}</strong>
+                        <span>Total Listings</span>
+                    </div>
+
+                    <div class="profile-stat">
+                        <i class="fa-solid fa-user-tag"></i>
+                        <strong>{{ user.role }}</strong>
+                        <span>Account Type</span>
+                    </div>
+
+                    <div class="profile-stat">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <strong>Map</strong>
+                        <span>Location Ready</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="profile-panel details-panel">
+                <div class="panel-heading">
+                    <h2>Personal Details</h2>
+                    <p>Information attached to your account.</p>
+                </div>
+
+                <div class="detail-list">
+                    <div class="detail-row">
+                        <span><i class="fa-solid fa-envelope"></i> Email</span>
+                        <strong>{{ user.email }}</strong>
+                    </div>
+
+                    <div class="detail-row">
+                        <span><i class="fa-solid fa-phone"></i> Phone</span>
+                        <strong>{{ user.phone }}</strong>
+                    </div>
+
+                    <div class="detail-row">
+                        <span><i class="fa-solid fa-id-badge"></i> User ID</span>
+                        <strong>#{{ user.id }}</strong>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <section class="profile-panel profile-guide">
+            <div>
+                <span class="profile-kicker">Next best step</span>
+                {% if user.role == "user" %}
+                <h2>Track your sent room requests.</h2>
+                <p>Open your request dashboard to see pending, accepted, and rejected PG requests.</p>
+                {% elif user.role == "owner" %}
+                <h2>Keep your listings fresh and responsive.</h2>
+                <p>Add accurate map locations, update images, and respond to incoming requests quickly.</p>
+                {% else %}
+                <h2>Monitor platform quality from admin tools.</h2>
+                <p>Review users, listings, requests, and keep the platform clean and reliable.</p>
+                {% endif %}
+            </div>
+
+            {% if user.role == "user" %}
+            <a href="/my-requests">View Request Status</a>
+            {% elif user.role == "owner" %}
+            <a href="/add">Add New Listing</a>
+            {% else %}
+            <a href="/admin">Open Admin Dashboard</a>
+            {% endif %}
+        </section>
+
+    </section>
+
+</main>
+
+<style>
+.profile-page{
+    min-height:100vh;
+    padding:54px 5% 90px;
+    background:
+        radial-gradient(circle at 12% 8%, rgba(255,56,92,0.10), transparent 28%),
+        radial-gradient(circle at 88% 18%, rgba(24,169,153,0.10), transparent 30%),
+        linear-gradient(180deg,#f8fafc,#eef4f7);
+}
+
+.profile-shell{
+    width:min(1120px,100%);
+    margin:0 auto;
+}
+
+.profile-hero-card{
+    position:relative;
+    overflow:hidden;
+    padding:34px;
+    display:flex;
+    justify-content:space-between;
+    gap:28px;
+    border:1px solid rgba(255,255,255,0.72);
+    border-radius:30px;
+    background:
+        linear-gradient(135deg,rgba(17,24,39,0.94),rgba(15,118,110,0.88)),
+        url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1600&auto=format&fit=crop");
+    background-size:cover;
+    background-position:center;
+    color:white;
+    box-shadow:0 32px 90px rgba(15,23,42,0.20);
+}
+
+.profile-identity{
+    display:flex;
+    align-items:center;
+    gap:24px;
+}
+
+.profile-avatar-xl{
+    flex:0 0 116px;
+    width:116px;
+    height:116px;
+    display:grid;
+    place-items:center;
+    border:1px solid rgba(255,255,255,0.22);
+    border-radius:32px;
+    background:linear-gradient(135deg,#ff385c,#18a999);
+    color:white;
+    font-size:48px;
+    font-weight:900;
+    box-shadow:0 22px 50px rgba(0,0,0,0.22);
+}
+
+.profile-kicker{
+    display:inline-flex;
+    min-height:32px;
+    align-items:center;
+    padding:0 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.14);
+    color:inherit;
+    font-size:12px;
+    font-weight:900;
+    text-transform:uppercase;
+}
+
+.profile-hero-card h1{
+    margin:14px 0 10px;
+    font-size:clamp(36px,5vw,58px);
+    line-height:1.05;
+}
+
+.profile-meta{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.role-badge,
+.profile-meta span:last-child{
+    display:inline-flex;
+    align-items:center;
+    min-height:32px;
+    padding:0 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.13);
+    color:white;
+    font-size:13px;
+    font-weight:800;
+    text-transform:capitalize;
+}
+
+.profile-hero-card p{
+    max-width:600px;
+    margin-top:14px;
+    color:rgba(255,255,255,0.78);
+    line-height:1.75;
+}
+
+.profile-quick-actions{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    min-width:190px;
+}
+
+.profile-action{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    min-height:46px;
+    padding:0 16px;
+    border-radius:14px;
+    color:white;
+    text-decoration:none;
+    font-weight:800;
+    white-space:nowrap;
+}
+
+.profile-action.dark{
+    background:rgba(255,255,255,0.14);
+    border:1px solid rgba(255,255,255,0.18);
+}
+
+.profile-action.accent{
+    background:#ff385c;
+}
+
+.profile-action.soft{
+    background:#18a999;
+}
+
+.profile-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:22px;
+    margin-top:22px;
+}
+
+.profile-panel{
+    padding:26px;
+    border:1px solid #e8edf3;
+    border-radius:24px;
+    background:white;
+    box-shadow:0 22px 60px rgba(15,23,42,0.08);
+}
+
+.panel-heading h2{
+    margin:0 0 7px;
+    color:#111827;
+    font-size:22px;
+}
+
+.panel-heading p{
+    color:#64748b;
+}
+
+.profile-stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin-top:22px;
+}
+
+.profile-stat{
+    padding:18px;
+    border-radius:18px;
+    background:#f8fafc;
+}
+
+.profile-stat i{
+    color:#ff385c;
+    font-size:20px;
+}
+
+.profile-stat strong,
+.profile-stat span{
+    display:block;
+}
+
+.profile-stat strong{
+    margin-top:12px;
+    color:#111827;
+    font-size:24px;
+    text-transform:capitalize;
+}
+
+.profile-stat span{
+    color:#64748b;
+    font-size:12px;
+    font-weight:800;
+}
+
+.detail-list{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-top:22px;
+}
+
+.detail-row{
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    padding:16px;
+    border-radius:16px;
+    background:#f8fafc;
+}
+
+.detail-row span{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    color:#64748b;
+    font-size:13px;
+    font-weight:800;
+}
+
+.detail-row strong{
+    color:#111827;
+    text-align:right;
+}
+
+.profile-guide{
+    margin-top:22px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:22px;
+}
+
+.profile-guide .profile-kicker{
+    background:#fff1f4;
+    color:#ff385c;
+}
+
+.profile-guide h2{
+    margin:14px 0 8px;
+    font-size:28px;
+    color:#111827;
+}
+
+.profile-guide p{
+    max-width:650px;
+    color:#64748b;
+    line-height:1.75;
+}
+
+.profile-guide a{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:48px;
+    padding:0 18px;
+    border-radius:15px;
+    background:#111827;
+    color:white;
+    text-decoration:none;
+    font-weight:800;
+    white-space:nowrap;
+}
+
+@media(max-width:900px){
+    .profile-hero-card,
+    .profile-guide{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .profile-grid{
+        grid-template-columns:1fr;
+    }
+
+    .profile-quick-actions{
+        width:100%;
+    }
+}
+
+@media(max-width:620px){
+    .profile-page{
+        padding:34px 16px 70px;
+    }
+
+    .profile-hero-card{
+        padding:24px;
+    }
+
+    .profile-identity{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .profile-stats{
+        grid-template-columns:1fr;
+    }
+
+    .detail-row{
+        flex-direction:column;
+    }
+
+    .detail-row strong{
+        text-align:left;
+    }
+}
+</style>
+
+{% endblock %}

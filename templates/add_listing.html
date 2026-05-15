@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<main class="add-page pro-add-page">
+
+    <section class="add-hero-panel">
+        <div>
+            <span class="section-kicker">Owner studio</span>
+            <h1>Create a polished PG listing</h1>
+            <p>
+                Add pricing, photos, room details, and an accurate map location so seekers can understand your PG before sending a request.
+            </p>
+        </div>
+
+        <div class="add-hero-metrics">
+            <div>
+                <strong>01</strong>
+                <span>Details</span>
+            </div>
+            <div>
+                <strong>02</strong>
+                <span>Location</span>
+            </div>
+            <div>
+                <strong>03</strong>
+                <span>Photos</span>
+            </div>
+        </div>
+    </section>
+
+    <form class="add-form add-studio" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+        <section class="add-main-card">
+
+            <div class="form-section-head">
+                <span><i class="fa-solid fa-house-chimney"></i></span>
+                <div>
+                    <h2>Listing details</h2>
+                    <p>Keep the title clear and describe the rooms, facilities, rules, and nearby places.</p>
+                </div>
+            </div>
+
+            <div class="add-grid">
+                <label class="add-field">
+                    <span>Listing title</span>
+                    <input type="text" name="title" placeholder="Modern boys PG near university" required>
+                </label>
+
+                <label class="add-field">
+                    <span>Monthly rent</span>
+                    <div class="price-input">
+                        <span>Rs</span>
+                        <input type="number" name="price" placeholder="8500" min="1" required>
+                    </div>
+                </label>
+            </div>
+
+            <div class="add-grid listing-meta-fields">
+                <label class="add-field">
+                    <span>Property type</span>
+                    <select name="room_type" required>
+                        <option value="">Select type</option>
+                        <option value="pg">PG</option>
+                        <option value="room">Room</option>
+                        <option value="studio">Studio</option>
+                        <option value="1bhk">1 BHK</option>
+                        <option value="2bhk">2 BHK</option>
+                        <option value="3bhk">3 BHK</option>
+                    </select>
+                </label>
+
+                <label class="add-field">
+                    <span>Sharing type</span>
+                    <select name="sharing_type" required>
+                        <option value="">Select sharing</option>
+                        <option value="single">Single / Private</option>
+                        <option value="double">Double sharing</option>
+                        <option value="triple">Triple sharing</option>
+                        <option value="shared">Shared</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="add-field listing-amenities">
+                <span>Amenities</span>
+                <div>
+                    <label><input type="checkbox" name="amenities" value="wifi"><span>Wi-Fi</span></label>
+                    <label><input type="checkbox" name="amenities" value="food"><span>Food</span></label>
+                    <label><input type="checkbox" name="amenities" value="parking"><span>Parking</span></label>
+                    <label><input type="checkbox" name="amenities" value="ac"><span>AC</span></label>
+                    <label><input type="checkbox" name="amenities" value="laundry"><span>Laundry</span></label>
+                    <label><input type="checkbox" name="amenities" value="attached_bath"><span>Attached bath</span></label>
+                </div>
+            </div>
+
+            <label class="add-field">
+                <span>Description</span>
+                <textarea name="description" placeholder="Mention room sharing, food, Wi-Fi, laundry, curfew, parking, and nearby landmarks..." required></textarea>
+            </label>
+
+            <div class="form-section-head location-head">
+                <span><i class="fa-solid fa-map-location-dot"></i></span>
+                <div>
+                    <h2>Pin exact location</h2>
+                    <p>Search the address or click on the map. The marker position will be saved with the listing.</p>
+                </div>
+            </div>
+
+            <div class="location-box add-field">
+                <span>Location search</span>
+                <div class="location-input-shell">
+                    <i class="fa-solid fa-magnifying-glass-location"></i>
+                    <input
+                        type="text"
+                        id="location-input"
+                        name="location"
+                        placeholder="Search any area, city, college, market, or landmark in India..."
+                        autocomplete="off"
+                        required>
+                </div>
+                <div id="suggestions"></div>
+            </div>
+
+            <div class="map-card">
+                <div id="map"></div>
+                <div class="map-note">
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                    <span>Drag the marker after selecting a location for extra accuracy.</span>
+                </div>
+            </div>
+
+            <input type="hidden" id="latitude" name="latitude">
+            <input type="hidden" id="longitude" name="longitude">
+
+        </section>
+
+        <aside class="add-side-card">
+
+            <div class="side-visual">
+                <img src="{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}" alt="Modern PG room">
+                <div class="side-badge">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Better photos get more attention</span>
+                </div>
+            </div>
+
+            <div class="upload-box">
+                <label>
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <strong>Upload PG images</strong>
+                    <span>Use bright room, bed, washroom, kitchen, and building photos.</span>
+                    <input
+                        type="file"
+                        name="images"
+                        multiple
+                        accept="image/*"
+                        onchange="previewImages(event)"
+                        required>
+                </label>
+            </div>
+
+            <div class="preview-container" id="previewContainer">
+                <div class="preview-empty">
+                    <i class="fa-regular fa-images"></i>
+                    <span>Image previews will appear here</span>
+                </div>
+            </div>
+
+            <div class="listing-checklist">
+                <div><i class="fa-solid fa-circle-check"></i> Clear rent and facilities</div>
+                <div><i class="fa-solid fa-circle-check"></i> Real room photos</div>
+                <div><i class="fa-solid fa-circle-check"></i> Accurate map pin</div>
+            </div>
+
+            <button type="submit" class="submit-btn">
+                <i class="fa-solid fa-paper-plane"></i>
+                Publish Listing
+            </button>
+
+        </aside>
+
+    </form>
+
+</main>
+
+<script>
+function previewImages(event) {
+    const preview = document.getElementById("previewContainer");
+    preview.innerHTML = "";
+
+    const files = event.target.files;
+
+    if (!files.length) {
+        preview.innerHTML = `
+            <div class="preview-empty">
+                <i class="fa-regular fa-images"></i>
+                <span>Image previews will appear here</span>
+            </div>
+        `;
+        return;
+    }
+
+    for (let file of files) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            const item = document.createElement("div");
+            item.className = "preview-item";
+
+            const img = document.createElement("img");
+            img.src = e.target.result;
+            img.alt = "Selected listing image";
+
+            item.appendChild(img);
+            preview.appendChild(item);
+        };
+
+        reader.readAsDataURL(file);
+    }
+}
+</script>
+
+{% endblock %}

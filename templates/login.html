@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login | PG Finder</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+*{box-sizing:border-box}
+
+body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Poppins",sans-serif;
+    background:#f7f9fc;
+    color:#111827;
+}
+
+.auth-page{
+    min-height:100vh;
+    display:grid;
+    grid-template-columns:1.1fr 0.9fr;
+}
+
+.auth-visual{
+    position:relative;
+    padding:48px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    background:
+        linear-gradient(135deg,rgba(15,23,42,0.78),rgba(15,118,110,0.54)),
+        url("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1600&auto=format&fit=crop");
+    background-size:cover;
+    background-position:center;
+    color:white;
+    overflow:hidden;
+}
+
+.auth-visual::after{
+    content:"";
+    position:absolute;
+    inset:24px;
+    border:1px solid rgba(255,255,255,0.16);
+    border-radius:28px;
+}
+
+.brand{
+    position:relative;
+    z-index:1;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    width:max-content;
+    padding:7px 14px 7px 7px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.12);
+    font-weight:800;
+}
+
+.brand span{
+    display:grid;
+    place-items:center;
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    background:#ff385c;
+}
+
+.visual-copy{
+    position:relative;
+    z-index:1;
+    max-width:580px;
+}
+
+.visual-copy h1{
+    margin:0 0 16px;
+    font-size:clamp(42px,6vw,76px);
+    line-height:1;
+}
+
+.visual-copy p{
+    max-width:520px;
+    color:rgba(255,255,255,0.82);
+    font-size:18px;
+    line-height:1.8;
+}
+
+.auth-panel{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:36px;
+}
+
+.auth-card{
+    width:min(430px,100%);
+    padding:34px;
+    border:1px solid #e8edf3;
+    border-radius:26px;
+    background:white;
+    box-shadow:0 28px 80px rgba(15,23,42,0.10);
+}
+
+.auth-card h2{
+    margin:0 0 8px;
+    font-size:32px;
+}
+
+.auth-card > p{
+    margin:0 0 24px;
+    color:#64748b;
+}
+
+.field{
+    position:relative;
+    margin-top:14px;
+}
+
+.field i{
+    position:absolute;
+    left:15px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#94a3b8;
+}
+
+.field input{
+    width:100%;
+    min-height:52px;
+    padding:0 15px 0 44px;
+    border:1px solid #dbe3ee;
+    border-radius:15px;
+    font:inherit;
+    outline:none;
+    transition:0.2s;
+}
+
+.field input:focus{
+    border-color:#ff385c;
+    box-shadow:0 0 0 4px rgba(255,56,92,0.10);
+}
+
+.auth-btn{
+    width:100%;
+    min-height:52px;
+    margin-top:18px;
+    border:0;
+    border-radius:15px;
+    background:linear-gradient(135deg,#ff385c,#18a999);
+    color:white;
+    font:inherit;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.error-box{
+    margin:0 0 18px;
+    padding:12px 14px;
+    border-radius:14px;
+    background:#fff1f2;
+    color:#be123c;
+    font-weight:700;
+    font-size:14px;
+}
+
+.auth-switch{
+    margin-top:20px;
+    text-align:center;
+    color:#64748b;
+    font-size:14px;
+}
+
+.auth-switch a{
+    color:#ff385c;
+    font-weight:800;
+    text-decoration:none;
+}
+
+@media(max-width:900px){
+    .auth-page{grid-template-columns:1fr}
+    .auth-visual{min-height:38vh}
+}
+
+@media(max-width:560px){
+    .auth-visual{padding:30px}
+    .auth-panel{padding:22px}
+    .auth-card{padding:26px}
+}
+</style>
+</head>
+
+<body>
+<main class="auth-page">
+    <section class="auth-visual">
+        <a class="brand" href="/">
+            <span>PG</span>
+            Finder
+        </a>
+
+        <div class="visual-copy">
+            <h1>Welcome back.</h1>
+            <p>Continue finding verified PGs, map-ready locations, and owner-managed stays with a smoother experience.</p>
+        </div>
+    </section>
+
+    <section class="auth-panel">
+        <div class="auth-card">
+            <h2>Login</h2>
+            <p>Access your PG Finder account.</p>
+
+            {% if error %}
+            <div class="error-box">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="next" value="{{ next_url }}">
+
+                <div class="field">
+                    <i class="fa-solid fa-envelope"></i>
+                    <input name="email" placeholder="Email address" required>
+                </div>
+
+                <div class="field">
+                    <i class="fa-solid fa-lock"></i>
+                    <input name="password" type="password" placeholder="Password" required>
+                </div>
+
+                <button class="auth-btn">Login</button>
+            </form>
+
+            <div class="auth-switch">
+                No account? <a href="/signup">Create one</a>
+            </div>
+        </div>
+    </section>
+</main>
+</body>
+</html>

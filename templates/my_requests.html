@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<main class="my-requests-page">
+
+    <section class="request-hero">
+        <div>
+            <span class="section-kicker">Request tracking</span>
+            <h1>My Requests</h1>
+            <p>Track every PG request you have sent, including pending requests waiting for owner action.</p>
+        </div>
+
+        <a href="/" class="back-home">
+            <i class="fa-solid fa-arrow-left"></i>
+            Browse Listings
+        </a>
+    </section>
+
+    <section class="request-status-grid">
+        <div class="request-stat">
+            <strong>{{ requests|length }}</strong>
+            <span>Total Sent</span>
+        </div>
+        <div class="request-stat">
+            <strong>{{ requests|selectattr("status", "equalto", "pending")|list|length }}</strong>
+            <span>Pending</span>
+        </div>
+        <div class="request-stat">
+            <strong>{{ requests|selectattr("status", "equalto", "accepted")|list|length }}</strong>
+            <span>Accepted</span>
+        </div>
+        <div class="request-stat">
+            <strong>{{ requests|selectattr("status", "equalto", "rejected")|list|length }}</strong>
+            <span>Rejected</span>
+        </div>
+    </section>
+
+    {% if requests %}
+    <section class="request-timeline">
+
+        {% for req in requests %}
+        <article class="sent-request-card {{ req.status }}">
+
+            <div class="sent-request-image">
+                {% if req.image %}
+                <img src="{{ url_for('static', filename='images/' + req.image) }}" alt="">
+                {% else %}
+                <div class="sent-request-fallback">
+                    <i class="fa-solid fa-house-chimney"></i>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="sent-request-content">
+                <div class="sent-request-top">
+                    <div>
+                        <h2>{{ req.title }}</h2>
+                        <p>
+                            <i class="fa-solid fa-location-dot"></i>
+                            {{ req.location }}
+                        </p>
+                    </div>
+
+                    <span class="status-pill {{ req.status }}">
+                        {% if req.status == "accepted" %}
+                            <i class="fa-solid fa-circle-check"></i>
+                        {% elif req.status == "rejected" %}
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        {% else %}
+                            <i class="fa-solid fa-clock"></i>
+                        {% endif %}
+                        {{ req.status }}
+                    </span>
+                </div>
+
+                <div class="request-progress-note {{ req.status }}">
+                    {% if req.status == "pending" %}
+                    Your request is waiting for the owner response.
+                    {% elif req.status == "accepted" %}
+                    Accepted. You can contact the owner and plan your visit.
+                    {% else %}
+                    Rejected. You can open the listing and send another request if needed.
+                    {% endif %}
+                </div>
+
+                <div class="sent-request-meta">
+                    <span>
+                        <i class="fa-solid fa-indian-rupee-sign"></i>
+                        {{ req.price }}/month
+                    </span>
+                    <span>
+                        <i class="fa-solid fa-user"></i>
+                        {{ req.owner_name or "Owner" }}
+                    </span>
+                    {% if req.status == "accepted" and req.owner_phone %}
+                    <span>
+                        <i class="fa-solid fa-phone"></i>
+                        {{ req.owner_phone }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                {% if req.message %}
+                <p class="sent-message">{{ req.message }}</p>
+                {% endif %}
+
+                <div class="sent-request-actions">
+                    <a href="/listing/{{ req.listing_id }}">
+                        <i class="fa-solid fa-eye"></i>
+                        View Listing
+                    </a>
+
+                    <a target="_blank" rel="noopener" href="https://www.google.com/maps?q={{ req.latitude }},{{ req.longitude }}">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                        View Map
+                    </a>
+                </div>
+
+            </div>
+
+        </article>
+        {% endfor %}
+
+    </section>
+    {% else %}
+    <section class="request-empty">
+        <i class="fa-solid fa-paper-plane"></i>
+        <h2>No requests sent yet</h2>
+        <p>Explore listings and send your first request to an owner.</p>
+        <a href="/">Explore PGs</a>
+    </section>
+    {% endif %}
+
+</main>
+
+<style>
+.my-requests-page{
+    min-height:100vh;
+    padding:46px 5% 86px;
+    background:
+        radial-gradient(circle at 12% 10%, rgba(255,56,92,0.08), transparent 28%),
+        radial-gradient(circle at 88% 8%, rgba(24,169,153,0.10), transparent 30%),
+        linear-gradient(180deg,#f8fafc,#eef4f7);
+}
+
+.request-hero{
+    width:min(1120px,100%);
+    margin:0 auto 24px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:20px;
+}
+
+.request-hero h1{
+    margin:14px 0 8px;
+    color:#111827;
+    font-size:clamp(36px,5vw,58px);
+    line-height:1.05;
+}
+
+.request-hero p{
+    max-width:620px;
+    color:#64748b;
+    line-height:1.75;
+}
+
+.back-home{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    min-height:44px;
+    padding:0 16px;
+    border-radius:14px;
+    background:#111827;
+    color:white;
+    text-decoration:none;
+    font-weight:800;
+}
+
+.request-status-grid{
+    width:min(1120px,100%);
+    margin:0 auto 24px;
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:14px;
+}
+
+.request-stat{
+    padding:20px;
+    border:1px solid #e8edf3;
+    border-radius:22px;
+    background:rgba(255,255,255,0.88);
+    box-shadow:0 20px 55px rgba(15,23,42,0.07);
+}
+
+.request-stat strong,
+.request-stat span{
+    display:block;
+}
+
+.request-stat strong{
+    color:#111827;
+    font-size:32px;
+}
+
+.request-stat span{
+    color:#64748b;
+    font-size:13px;
+    font-weight:700;
+}
+
+.request-timeline{
+    width:min(1120px,100%);
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+.sent-request-card{
+    position:relative;
+    display:grid;
+    grid-template-columns:220px 1fr;
+    gap:20px;
+    padding:18px;
+    border:1px solid #e8edf3;
+    border-radius:24px;
+    background:rgba(255,255,255,0.94);
+    box-shadow:0 22px 60px rgba(15,23,42,0.08);
+}
+
+.sent-request-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:22px;
+    bottom:22px;
+    width:5px;
+    border-radius:0 999px 999px 0;
+    background:#f59e0b;
+}
+
+.sent-request-card.accepted::before{
+    background:#10b981;
+}
+
+.sent-request-card.rejected::before{
+    background:#ef4444;
+}
+
+.sent-request-image img,
+.sent-request-fallback{
+    width:100%;
+    height:170px;
+    border-radius:18px;
+}
+
+.sent-request-image img{
+    object-fit:cover;
+}
+
+.sent-request-fallback{
+    display:grid;
+    place-items:center;
+    background:#f1f5f9;
+    color:#94a3b8;
+    font-size:34px;
+}
+
+.sent-request-top{
+    display:flex;
+    justify-content:space-between;
+    gap:18px;
+}
+
+.sent-request-top h2{
+    margin:0 0 8px;
+    color:#111827;
+    font-size:24px;
+}
+
+.sent-request-top p{
+    color:#64748b;
+}
+
+.status-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:38px;
+    padding:0 13px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:900;
+    text-transform:capitalize;
+}
+
+.status-pill.pending{
+    background:#fff7ed;
+    color:#c2410c;
+}
+
+.status-pill.accepted{
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.status-pill.rejected{
+    background:#fff1f2;
+    color:#be123c;
+}
+
+.request-progress-note{
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:15px;
+    background:#fff7ed;
+    color:#c2410c;
+    font-size:13px;
+    font-weight:800;
+}
+
+.request-progress-note.accepted{
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.request-progress-note.rejected{
+    background:#fff1f2;
+    color:#be123c;
+}
+
+.sent-request-meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin:18px 0;
+}
+
+.sent-request-meta span{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:9px 12px;
+    border-radius:999px;
+    background:#f8fafc;
+    color:#475569;
+    font-size:13px;
+    font-weight:700;
+}
+
+.sent-message{
+    margin:0 0 18px;
+    padding:14px;
+    border-radius:16px;
+    background:#f8fafc;
+    color:#64748b;
+}
+
+.sent-request-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.sent-request-actions a{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:42px;
+    padding:0 14px;
+    border-radius:13px;
+    background:#111827;
+    color:white;
+    text-decoration:none;
+    font-size:13px;
+    font-weight:800;
+}
+
+.sent-request-actions a:last-child{
+    background:#0f766e;
+}
+
+.request-empty{
+    width:min(700px,calc(100% - 24px));
+    margin:40px auto 0;
+    padding:70px 24px;
+    border:1px dashed #cbd5e1;
+    border-radius:26px;
+    background:white;
+    text-align:center;
+}
+
+.request-empty i{
+    font-size:38px;
+    color:#ff385c;
+}
+
+.request-empty h2{
+    margin:18px 0 8px;
+}
+
+.request-empty p{
+    color:#64748b;
+}
+
+.request-empty a{
+    display:inline-flex;
+    margin-top:18px;
+    min-height:44px;
+    align-items:center;
+    padding:0 18px;
+    border-radius:14px;
+    background:#ff385c;
+    color:white;
+    text-decoration:none;
+    font-weight:800;
+}
+
+@media(max-width:840px){
+    .request-hero{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .request-status-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .sent-request-card{
+        grid-template-columns:1fr;
+    }
+}
+
+@media(max-width:560px){
+    .request-status-grid{
+        grid-template-columns:1fr;
+    }
+
+    .sent-request-top{
+        flex-direction:column;
+    }
+}
+</style>
+
+{% endblock %}

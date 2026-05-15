@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<main class="contact-page">
+
+    <section class="contact-hero">
+        <span class="section-kicker">Feedback center</span>
+        <h1>Contact PG Finder</h1>
+        <p>Send feedback, complaints, bug reports, or support requests. Each account can submit once so every message stays meaningful.</p>
+    </section>
+
+    <section class="contact-shell">
+
+        <div class="contact-info-panel">
+            <div class="contact-panel-head">
+                <h2>We read every message.</h2>
+                <p>Your feedback helps improve listings, map accuracy, requests, and the overall PG Finder experience.</p>
+            </div>
+
+            <div class="contact-methods">
+                <div class="contact-method">
+                    <i class="fa-solid fa-envelope"></i>
+                    <div>
+                        <strong>Email</strong>
+                        <span>support@pgfinder.com</span>
+                    </div>
+                </div>
+
+                <div class="contact-method">
+                    <i class="fa-solid fa-phone"></i>
+                    <div>
+                        <strong>Phone</strong>
+                        <span>+91 9876543210</span>
+                    </div>
+                </div>
+
+                <div class="contact-method">
+                    <i class="fa-solid fa-location-dot"></i>
+                    <div>
+                        <strong>Location</strong>
+                        <span>Srinagar, Kashmir</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-promise">
+                <i class="fa-solid fa-shield-heart"></i>
+                <span>One thoughtful message per user keeps support clean and trackable.</span>
+            </div>
+        </div>
+
+        <div class="contact-form-panel">
+
+            {% if status == "sent" %}
+            <div class="contact-alert success">
+                <i class="fa-solid fa-circle-check"></i>
+                Your message was sent successfully.
+            </div>
+            {% elif status == "already-sent" %}
+            <div class="contact-alert warning">
+                <i class="fa-solid fa-circle-info"></i>
+                You have already submitted feedback from this account.
+            </div>
+            {% endif %}
+
+            {% if existing_message %}
+            <div class="submitted-card">
+                <span class="submitted-label">Submitted feedback</span>
+                <h2>{{ existing_message.subject }}</h2>
+                <p>{{ existing_message.message }}</p>
+            </div>
+            {% else %}
+            <form method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Your Name</label>
+                        <input type="text" name="name" value="{{ user.name }}" required>
+                    </div>
+
+                    <div class="field">
+                        <label>Your Email</label>
+                        <input type="email" name="email" value="{{ user.email }}" required>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Subject</label>
+                    <select name="subject" required>
+                        <option value="Feedback">Feedback</option>
+                        <option value="Complaint">Complaint</option>
+                        <option value="Bug Report">Bug Report</option>
+                        <option value="Support">Support</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Message</label>
+                    <textarea name="message" placeholder="Write your message..." required></textarea>
+                </div>
+
+                <button class="contact-submit">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    Send Message
+                </button>
+            </form>
+            {% endif %}
+
+        </div>
+
+    </section>
+
+</main>
+
+<style>
+.contact-page{
+    min-height:100vh;
+    padding:58px 5% 92px;
+    background:
+        radial-gradient(circle at 12% 8%, rgba(255,56,92,0.10), transparent 30%),
+        radial-gradient(circle at 86% 20%, rgba(24,169,153,0.10), transparent 30%),
+        linear-gradient(180deg,#f8fafc,#eef4f7);
+}
+
+.contact-hero{
+    width:min(980px,100%);
+    margin:0 auto 34px;
+    text-align:center;
+}
+
+.contact-hero h1{
+    margin:16px 0 12px;
+    color:#111827;
+    font-size:clamp(38px,6vw,68px);
+    line-height:1.02;
+}
+
+.contact-hero p{
+    max-width:720px;
+    margin:0 auto;
+    color:#64748b;
+    font-size:17px;
+    line-height:1.8;
+}
+
+.contact-shell{
+    width:min(1120px,100%);
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:0.9fr 1.1fr;
+    gap:24px;
+}
+
+.contact-info-panel,
+.contact-form-panel{
+    border:1px solid #e8edf3;
+    border-radius:28px;
+    background:white;
+    box-shadow:0 28px 80px rgba(15,23,42,0.09);
+}
+
+.contact-info-panel{
+    padding:32px;
+    background:
+        linear-gradient(135deg,rgba(17,24,39,0.94),rgba(15,118,110,0.88)),
+        url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1600&auto=format&fit=crop");
+    background-size:cover;
+    background-position:center;
+    color:white;
+}
+
+.contact-panel-head h2{
+    margin-bottom:12px;
+    font-size:34px;
+    line-height:1.12;
+}
+
+.contact-panel-head p{
+    color:rgba(255,255,255,0.76);
+    line-height:1.8;
+}
+
+.contact-methods{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    margin-top:30px;
+}
+
+.contact-method{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:15px;
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:18px;
+    background:rgba(255,255,255,0.10);
+    backdrop-filter:blur(10px);
+}
+
+.contact-method i{
+    display:grid;
+    place-items:center;
+    width:44px;
+    height:44px;
+    border-radius:14px;
+    background:#ff385c;
+}
+
+.contact-method strong,
+.contact-method span{
+    display:block;
+}
+
+.contact-method span{
+    margin-top:3px;
+    color:rgba(255,255,255,0.72);
+    font-size:13px;
+}
+
+.contact-promise{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-top:26px;
+    padding:16px;
+    border-radius:18px;
+    background:rgba(255,255,255,0.12);
+    color:rgba(255,255,255,0.84);
+    line-height:1.6;
+}
+
+.contact-form-panel{
+    padding:32px;
+}
+
+.form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+}
+
+.field{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-bottom:16px;
+}
+
+.field label{
+    color:#334155;
+    font-size:13px;
+    font-weight:800;
+}
+
+.field input,
+.field select,
+.field textarea{
+    width:100%;
+    border:1px solid #dbe3ee;
+    border-radius:16px;
+    background:#f8fafc;
+    padding:15px;
+    font:inherit;
+    outline:none;
+    transition:0.2s;
+}
+
+.field textarea{
+    min-height:170px;
+    resize:vertical;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus{
+    border-color:#ff385c;
+    box-shadow:0 0 0 4px rgba(255,56,92,0.10);
+    background:white;
+}
+
+.contact-submit{
+    width:100%;
+    min-height:54px;
+    display:inline-flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    border:0;
+    border-radius:16px;
+    background:linear-gradient(135deg,#ff385c,#18a999);
+    color:white;
+    font:inherit;
+    font-weight:900;
+    cursor:pointer;
+}
+
+.contact-alert{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+    padding:14px;
+    border-radius:16px;
+    font-weight:800;
+}
+
+.contact-alert.success{
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.contact-alert.warning{
+    background:#fff7ed;
+    color:#c2410c;
+}
+
+.submitted-card{
+    padding:28px;
+    border-radius:22px;
+    background:#f8fafc;
+    border:1px solid #e8edf3;
+}
+
+.submitted-label{
+    display:inline-flex;
+    padding:7px 11px;
+    border-radius:999px;
+    background:#ecfdf5;
+    color:#047857;
+    font-size:12px;
+    font-weight:900;
+    text-transform:uppercase;
+}
+
+.submitted-card h2{
+    margin:18px 0 10px;
+    color:#111827;
+}
+
+.submitted-card p{
+    color:#64748b;
+    line-height:1.8;
+}
+
+@media(max-width:900px){
+    .contact-shell,
+    .form-grid{
+        grid-template-columns:1fr;
+    }
+}
+
+@media(max-width:560px){
+    .contact-page{
+        padding:38px 16px 70px;
+    }
+
+    .contact-info-panel,
+    .contact-form-panel{
+        padding:24px;
+        border-radius:22px;
+    }
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+.admin-page{
+    min-height:100vh;
+    padding:38px 5% 80px;
+    background:#f6f8fb;
+}
+
+.admin-hero{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:24px;
+    margin-bottom:26px;
+}
+
+.admin-kicker{
+    display:inline-flex;
+    padding:7px 12px;
+    border-radius:999px;
+    background:#fff1f4;
+    color:#ff385c;
+    font-size:12px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.admin-hero h1{
+    margin:12px 0 8px;
+    color:#111827;
+    font-size:42px;
+    line-height:1.1;
+}
+
+.admin-hero p{
+    color:#64748b;
+}
+
+.admin-home{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    padding:12px 16px;
+    border-radius:14px;
+    background:#111827;
+    color:white;
+    text-decoration:none;
+    font-weight:700;
+}
+
+.admin-stats{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(160px,1fr));
+    gap:18px;
+    margin-bottom:24px;
+}
+
+.admin-stat{
+    padding:22px;
+    border:1px solid #e8edf3;
+    border-radius:20px;
+    background:white;
+    box-shadow:0 18px 45px rgba(15,23,42,0.06);
+}
+
+.admin-stat span{
+    color:#64748b;
+    font-size:13px;
+    font-weight:700;
+}
+
+.admin-stat strong{
+    display:block;
+    margin-top:9px;
+    color:#111827;
+    font-size:34px;
+}
+
+.admin-grid{
+    display:grid;
+    grid-template-columns:1.35fr 0.9fr;
+    gap:24px;
+}
+
+.admin-panel{
+    border:1px solid #e8edf3;
+    border-radius:22px;
+    background:white;
+    box-shadow:0 18px 45px rgba(15,23,42,0.06);
+    overflow:hidden;
+}
+
+.panel-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    padding:20px 22px;
+    border-bottom:1px solid #edf1f6;
+}
+
+.panel-head h2{
+    margin:0;
+    font-size:20px;
+}
+
+.panel-head p{
+    margin:4px 0 0;
+    color:#64748b;
+    font-size:13px;
+}
+
+.admin-table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.admin-table th,
+.admin-table td{
+    padding:16px 18px;
+    border-bottom:1px solid #edf1f6;
+    text-align:left;
+    vertical-align:middle;
+}
+
+.admin-table th{
+    color:#64748b;
+    font-size:12px;
+    text-transform:uppercase;
+}
+
+.user-cell strong,
+.listing-cell strong{
+    display:block;
+    color:#111827;
+}
+
+.user-cell span,
+.listing-cell span{
+    color:#64748b;
+    font-size:12px;
+}
+
+.role-badge{
+    display:inline-flex;
+    padding:6px 10px;
+    border-radius:999px;
+    background:#eef2ff;
+    color:#4338ca;
+    font-size:12px;
+    font-weight:800;
+}
+
+.admin-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+.admin-actions select{
+    min-height:36px;
+    border:1px solid #dbe3ee;
+    border-radius:10px;
+    padding:0 10px;
+    font-family:inherit;
+}
+
+.mini-btn{
+    min-height:36px;
+    padding:0 12px;
+    border:0;
+    border-radius:10px;
+    background:#111827;
+    color:white;
+    font-family:inherit;
+    font-size:12px;
+    font-weight:800;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+}
+
+.mini-btn.danger{
+    background:#ef4444;
+}
+
+.listing-list{
+    display:flex;
+    flex-direction:column;
+}
+
+.listing-row{
+    display:grid;
+    grid-template-columns:72px 1fr auto;
+    gap:14px;
+    align-items:center;
+    padding:16px 18px;
+    border-bottom:1px solid #edf1f6;
+}
+
+.listing-row img{
+    width:72px;
+    height:58px;
+    border-radius:12px;
+    object-fit:cover;
+    background:#e5e7eb;
+}
+
+.listing-meta{
+    color:#64748b;
+    font-size:12px;
+}
+
+.request-pills{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    padding:18px 22px 22px;
+}
+
+.request-pills span{
+    padding:10px 12px;
+    border-radius:999px;
+    background:#f8fafc;
+    color:#334155;
+    font-size:13px;
+    font-weight:800;
+}
+
+@media(max-width:1000px){
+    .admin-stats,
+    .admin-grid{
+        grid-template-columns:1fr;
+    }
+
+    .admin-hero{
+        flex-direction:column;
+    }
+}
+
+@media(max-width:720px){
+    .admin-table,
+    .admin-table tbody,
+    .admin-table tr,
+    .admin-table td{
+        display:block;
+        width:100%;
+    }
+
+    .admin-table thead{
+        display:none;
+    }
+
+    .listing-row{
+        grid-template-columns:64px 1fr;
+    }
+
+    .listing-row .admin-actions{
+        grid-column:1/-1;
+    }
+}
+</style>
+
+<main class="admin-page">
+
+    <section class="admin-hero">
+        <div>
+            <span class="admin-kicker">Admin command center</span>
+            <h1>Platform Dashboard</h1>
+            <p>Monitor users, listings, requests, and remove unsafe accounts or content.</p>
+        </div>
+
+        <a href="/" class="admin-home">
+            <i class="fa-solid fa-arrow-left"></i>
+            Back Home
+        </a>
+    </section>
+
+    <section class="admin-stats">
+        <div class="admin-stat">
+            <span>Active Accounts</span>
+            <strong>{{ user_stats.total_users or 0 }}</strong>
+        </div>
+        <div class="admin-stat">
+            <span>Owners</span>
+            <strong>{{ user_stats.owners or 0 }}</strong>
+        </div>
+        <div class="admin-stat">
+            <span>Listings</span>
+            <strong>{{ total_listings or 0 }}</strong>
+        </div>
+        <div class="admin-stat">
+            <span>Total Requests</span>
+            <strong>{{ total_requests or 0 }}</strong>
+        </div>
+    </section>
+
+    <section class="admin-grid">
+
+        <div class="admin-panel">
+            <div class="panel-head">
+                <div>
+                    <h2>User Control</h2>
+                    <p>Delete accounts or change access level.</p>
+                </div>
+            </div>
+
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Activity</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td class="user-cell">
+                            <strong>{{ u.name }}</strong>
+                            <span>{{ u.email }}{% if u.phone %} - {{ u.phone }}{% endif %}</span>
+                        </td>
+                        <td>
+                            <span class="role-badge">{{ u.role }}</span>
+                        </td>
+                        <td>
+                            {{ u.listing_count }} listings - {{ u.request_count }} requests
+                        </td>
+                        <td>
+                            <div class="admin-actions">
+                                <form method="POST" action="/admin/user/{{ u.id }}/role">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                    <select name="role">
+                                        <option value="user" {% if u.role == 'user' %}selected{% endif %}>User</option>
+                                        <option value="owner" {% if u.role == 'owner' %}selected{% endif %}>Owner</option>
+                                        <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
+                                    </select>
+                                    <button class="mini-btn" type="submit">Save</button>
+                                </form>
+
+                                {% if u.id != session.get('user_id') %}
+                                <form method="POST" action="/admin/delete-user/{{ u.id }}" onsubmit="return confirm('Delete this user and all related data?')">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                    <button class="mini-btn danger" type="submit">Delete</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div>
+            <div class="admin-panel" style="margin-bottom:24px;">
+                <div class="panel-head">
+                    <div>
+                        <h2>Request Health</h2>
+                        <p>Current request status breakdown.</p>
+                    </div>
+                </div>
+
+                <div class="request-pills">
+                    <span>Pending: {{ request_stats.get('pending', 0) }}</span>
+                    <span>Accepted: {{ request_stats.get('accepted', 0) }}</span>
+                    <span>Rejected: {{ request_stats.get('rejected', 0) }}</span>
+                </div>
+            </div>
+
+            <div class="admin-panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Recent Listings</h2>
+                        <p>Quickly moderate latest rooms.</p>
+                    </div>
+                </div>
+
+                <div class="listing-list">
+                    {% for listing in listings %}
+                    <div class="listing-row">
+                        {% if listing.image %}
+                        <img src="{{ url_for('static', filename='images/' + listing.image) }}" alt="">
+                        {% else %}
+                        <img src="https://via.placeholder.com/160x120" alt="">
+                        {% endif %}
+
+                        <div class="listing-cell">
+                            <strong>{{ listing.title }}</strong>
+                            <span>{{ listing.owner_name or 'Unknown owner' }}</span>
+                            <div class="listing-meta">Rs {{ listing.price }} - {{ listing.location }}</div>
+                        </div>
+
+                        <div class="admin-actions">
+                            <a class="mini-btn" href="/listing/{{ listing.id }}">View</a>
+                            <form method="POST" action="/delete/{{ listing.id }}" onsubmit="return confirm('Delete this listing?')">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                <button class="mini-btn danger" type="submit">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+</main>
+
+{% endblock %}

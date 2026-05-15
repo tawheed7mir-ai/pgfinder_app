@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<main class="owner-requests-page">
+
+    <section class="owner-request-hero">
+        <div>
+            <span class="section-kicker">Request command center</span>
+            <h1>Booking requests</h1>
+            <p>Review incoming PG requests, inspect seeker details, and respond quickly with a clean owner workflow.</p>
+        </div>
+
+        <a href="/my-listings" class="request-hero-action">
+            <i class="fa-solid fa-building-user"></i>
+            My Listings
+        </a>
+    </section>
+
+    <section class="owner-request-stats">
+        <div class="owner-request-stat">
+            <span>Total requests</span>
+            <strong>{{ requests|length }}</strong>
+        </div>
+        <div class="owner-request-stat pending">
+            <span>Pending</span>
+            <strong>{{ requests|selectattr("status", "equalto", "pending")|list|length }}</strong>
+        </div>
+        <div class="owner-request-stat accepted">
+            <span>Accepted</span>
+            <strong>{{ requests|selectattr("status", "equalto", "accepted")|list|length }}</strong>
+        </div>
+        <div class="owner-request-stat rejected">
+            <span>Rejected</span>
+            <strong>{{ requests|selectattr("status", "equalto", "rejected")|list|length }}</strong>
+        </div>
+    </section>
+
+    {% if requests %}
+
+    <section class="owner-request-list">
+
+        {% for req in requests %}
+        <article class="owner-request-card {{ req.status }}" id="request-{{ req.id }}">
+
+            <div class="owner-request-media">
+                {% if req.image %}
+                <img src="{{ url_for('static', filename='images/' + req.image) }}" alt="">
+                {% else %}
+                <div class="request-image-fallback">
+                    <i class="fa-solid fa-house-chimney"></i>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="owner-request-body">
+                <div class="owner-request-top">
+                    <div>
+                        <h2>{{ req.title }}</h2>
+                        <p>
+                            <i class="fa-solid fa-user"></i>
+                            {{ req.user_name }}
+                        </p>
+                    </div>
+
+                    <span class="owner-status-pill {{ req.status }}">
+                        {% if req.status == "accepted" %}
+                        <i class="fa-solid fa-circle-check"></i>
+                        {% elif req.status == "rejected" %}
+                        <i class="fa-solid fa-circle-xmark"></i>
+                        {% else %}
+                        <i class="fa-solid fa-clock"></i>
+                        {% endif %}
+                        {{ req.status }}
+                    </span>
+                </div>
+
+                <div class="owner-request-contact">
+                    <a href="tel:{{ req.phone }}">
+                        <i class="fa-solid fa-phone"></i>
+                        {{ req.phone }}
+                    </a>
+                    <a href="mailto:{{ req.email }}">
+                        <i class="fa-solid fa-envelope"></i>
+                        {{ req.email }}
+                    </a>
+                </div>
+
+                {% if req.message %}
+                <p class="owner-request-message">
+                    {{ req.message }}
+                </p>
+                {% else %}
+                <p class="owner-request-message muted">
+                    No message added by this seeker.
+                </p>
+                {% endif %}
+            </div>
+
+            <div class="owner-request-actions">
+                {% if req.status == "pending" %}
+                <form action="/accept-request/{{ req.id }}" method="POST">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <button class="accept-btn" type="submit">
+                        <i class="fa-solid fa-check"></i>
+                        Accept
+                    </button>
+                </form>
+
+                <form
+                    action="/reject-request/{{ req.id }}"
+                    method="POST"
+                    onsubmit="return deleteRequest(event, '{{ req.id }}')">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <button class="reject-btn" type="submit">
+                        <i class="fa-solid fa-xmark"></i>
+                        Reject
+                    </button>
+                </form>
+                {% else %}
+                <div class="handled-state">
+                    <i class="fa-solid fa-lock"></i>
+                    Already {{ req.status }}
+                </div>
+                {% endif %}
+            </div>
+
+        </article>
+        {% endfor %}
+
+    </section>
+
+    {% else %}
+
+    <section class="owner-request-empty">
+        <i class="fa-regular fa-envelope-open"></i>
+        <h2>No requests yet</h2>
+        <p>When users request your PG listings, they will appear here with contact details and action buttons.</p>
+        <a href="/my-listings">
+            <i class="fa-solid fa-building-user"></i>
+            Manage listings
+        </a>
+    </section>
+
+    {% endif %}
+
+</main>
+
+<script>
+function deleteRequest(event, id){
+    event.preventDefault();
+    const form = event.target;
+    const token = form.querySelector("input[name='_csrf_token']").value;
+
+    const shouldReject = confirm("Are you sure you want to reject this request?");
+
+    if (!shouldReject) {
+        return false;
+    }
+
+    fetch(`/reject-request/${id}`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": token
+        }
+    })
+    .then((res) => {
+        if (!res.ok) return;
+
+        const card = document.getElementById(`request-${id}`);
+
+        if (!card) return;
+
+        card.classList.add("request-leaving");
+
+        setTimeout(() => {
+            card.remove();
+        }, 320);
+    });
+
+    return false;
+}
+</script>
+
+{% endblock %}

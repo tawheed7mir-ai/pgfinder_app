@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+    content="width=device-width, initial-scale=1.0">
+
+    <title>PG Finder</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- GOOGLE FONT -->
+
+    <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+    <!-- FONT AWESOME -->
+
+    <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- MAIN CSS -->
+
+    <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/style.css') }}">
+
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+
+<nav class="navbar">
+
+    <!-- LOGO -->
+
+    <a href="/" class="logo">
+        <span class="logo-mark">PG</span>
+        <span class="logo-text">Finder</span>
+    </a>
+
+    <button class="nav-toggle" type="button" aria-label="Open navigation menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <!-- SEARCH -->
+
+    <form class="search-box" action="/" method="GET">
+
+        <input
+        type="text"
+        name="search"
+        placeholder="Search locations...">
+
+        <button type="submit" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i>
+            🔍
+        </button>
+
+    </form>
+
+    <!-- RIGHT NAV -->
+
+    <div class="nav-right">
+
+        <a href="/">Home</a>
+
+        {% if session.get('username') %}
+
+            {% if session.get('role') in ['owner', 'admin'] %}
+
+            <a href="/add">Add Listing</a>
+
+            <a href="/my-listings">My Listings</a>
+
+            <a href="/requests">Requests</a>
+
+            {% endif %}
+
+            {% if session.get('role') == 'admin' %}
+
+            <a href="/admin">Admin</a>
+
+            {% endif %}
+
+            <a href="/contact">Contact</a>
+
+            {% if session.get('role') == 'user' %}
+
+            <a href="/my-requests">My Requests</a>
+
+            {% endif %}
+
+            <!-- PROFILE -->
+
+            <a href="/profile" class="profile-link">
+
+                <div class="avatar">
+
+                    {{ session.get('username')[0] | upper }}
+
+                </div>
+
+            </a>
+
+            <a href="/logout" class="logout-link">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                Logout
+            </a>
+
+        {% else %}
+
+            <a href="/login">Login</a>
+
+            <a href="/signup">Signup</a>
+
+        {% endif %}
+
+    </div>
+
+</nav>
+    <!-- PAGE CONTENT -->
+
+    {% block content %}
+    {% endblock %}
+
+    <!-- FOOTER -->
+
+    <footer class="footer">
+
+        <div class="footer-top">
+
+            <!-- LEFT -->
+
+            <div class="footer-brand">
+
+                <div class="footer-logo">
+                    <span>PG</span>
+                    Finder
+                </div>
+
+                <h2>
+                    Find better stays with confidence.
+                </h2>
+
+                <p>
+                    Discover modern PGs, compare real details,
+                    check map-ready locations, and connect with
+                    owners through a clean digital experience.
+                </p>
+
+                <div class="footer-socials">
+                    <a href="#" aria-label="Instagram">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                    <a href="#" aria-label="Facebook">
+                        <i class="fa-brands fa-facebook-f"></i>
+                    </a>
+                    <a href="#" aria-label="X">
+                        <i class="fa-brands fa-x-twitter"></i>
+                    </a>
+                </div>
+
+            </div>
+
+            <!-- LINKS -->
+
+            <div class="footer-links">
+
+                <h2>
+                    Quick Links
+                </h2>
+
+                <a href="/">Home</a>
+
+                {% if session.get('role') in ['owner', 'admin'] %}
+
+                <a href="/add">Add Listing</a>
+
+                <a href="/my-listings">My Listings</a>
+
+                {% endif %}
+
+                {% if session.get('role') == 'admin' %}
+
+                <a href="/admin">Admin</a>
+
+                {% endif %}
+
+                {% if session.get('role') == 'user' %}
+
+                <a href="/my-requests">My Requests</a>
+
+                {% endif %}
+
+                <a href="/contact">Contact</a>
+
+            </div>
+
+            <div class="footer-links">
+
+                <h2>
+                    Explore
+                </h2>
+
+                <a href="/category/trending">Trending PGs</a>
+
+                <a href="/category/budget">Budget Stays</a>
+
+                <a href="/category/luxury">Luxury Rooms</a>
+
+                <a href="/category/premium">Premium PGs</a>
+
+            </div>
+
+            <!-- CONTACT -->
+
+            <div class="footer-links footer-contact">
+
+                <h2>
+                    Contact
+                </h2>
+
+                <div class="contact-list">
+                    <span>
+                        <i class="fa-solid fa-location-dot"></i>
+                        Kashmir, India
+                    </span>
+
+                    <span>
+                        <i class="fa-solid fa-phone"></i>
+                        +91 9999999999
+                    </span>
+
+                    <span>
+                        <i class="fa-solid fa-envelope"></i>
+                        pgfinder@gmail.com
+                    </span>
+                </div>
+
+                <p>
+                    📍 Kashmir, India
+                </p>
+
+                <p>
+                    📞 +91 9999999999
+                </p>
+
+                <p>
+                    📧 pgfinder@gmail.com
+                </p>
+
+            </div>
+
+        </div>
+
+        <!-- COPYRIGHT -->
+
+        <div class="copyright">
+
+            <div class="copyright-modern">
+                <span>© 2026 PG Finder. All rights reserved.</span>
+                <span>Built for students, professionals, and PG owners.</span>
+            </div>
+
+            © 2026 PG Finder.
+            All rights reserved.
+
+        </div>
+
+    </footer>
+
+    {% if session.get('user_id') %}
+    <div id="notification-stack" class="notification-stack"></div>
+    {% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const navbar = document.querySelector(".navbar");
+    const navToggle = document.querySelector(".nav-toggle");
+    const navRight = document.querySelector(".nav-right");
+
+    if (!navbar || !navToggle || !navRight) {
+        return;
+    }
+
+    function closeMenu() {
+        navbar.classList.remove("nav-open");
+        navToggle.setAttribute("aria-expanded", "false");
+        navToggle.setAttribute("aria-label", "Open navigation menu");
+    }
+
+    navToggle.addEventListener("click", () => {
+        const isOpen = navbar.classList.toggle("nav-open");
+        navToggle.setAttribute("aria-expanded", String(isOpen));
+        navToggle.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
+    });
+
+    navRight.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", closeMenu);
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!navbar.classList.contains("nav-open")) return;
+        if (!event.target.closest(".navbar")) closeMenu();
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeMenu();
+    });
+});
+
+function moveSlide(button, direction){
+
+    const images =
+    button.parentElement.querySelectorAll(".slide");
+
+    let activeIndex = 0;
+
+    images.forEach((img,index)=>{
+
+        if(img.classList.contains("active-slide")){
+            activeIndex = index;
+        }
+
+    });
+
+    images[activeIndex]
+    .classList.remove("active-slide");
+
+    activeIndex =
+    (activeIndex + direction + images.length)
+    % images.length;
+
+    images[activeIndex]
+    .classList.add("active-slide");
+
+}
+
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const input = document.getElementById("location-input");
+    const suggestions = document.getElementById("suggestions");
+    const latInput = document.getElementById("latitude");
+    const lngInput = document.getElementById("longitude");
+    const mapElement = document.getElementById("map");
+
+    if (!input || !suggestions || !latInput || !lngInput || !mapElement) {
+        return;
+    }
+
+    const indiaCenter = [22.9734, 78.6569];
+
+    const map = L.map(mapElement).setView(indiaCenter, 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    let marker = null;
+
+    function setLocation(lat, lng, name = "", shouldReverse = false) {
+
+        const latNumber = Number(lat);
+        const lngNumber = Number(lng);
+
+        if (Number.isNaN(latNumber) || Number.isNaN(lngNumber)) {
+            return;
+        }
+
+        if (marker) {
+            marker.setLatLng([latNumber, lngNumber]);
+        } else {
+            marker = L.marker([latNumber, lngNumber], { draggable: true }).addTo(map);
+
+            marker.on("dragend", async () => {
+                const pos = marker.getLatLng();
+                await setLocation(pos.lat, pos.lng, "", true);
+            });
+        }
+
+        map.setView([latNumber, lngNumber], 16);
+
+        latInput.value = latNumber;
+        lngInput.value = lngNumber;
+
+        if (name) input.value = name;
+
+        if (shouldReverse) {
+            updateAddressFromCoordinates(latNumber, lngNumber);
+        }
+    }
+
+    async function updateAddressFromCoordinates(lat, lng) {
+        try {
+            const res = await fetch(
+                `/api/reverse-location?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`
+            );
+
+            if (!res.ok) return;
+
+            const place = await res.json();
+
+            if (place.name) {
+                input.value = place.name;
+            }
+        } catch (err) {
+            console.log("Reverse location error:", err);
+        }
+    }
+
+    function renderSuggestions(data) {
+        suggestions.innerHTML = "";
+
+        if (data.length === 0) {
+            suggestions.innerHTML = '<div class="suggestion-item">No locations found</div>';
+            return;
+        }
+
+        data.forEach(place => {
+
+            const div = document.createElement("div");
+            div.className = "suggestion-item";
+            div.innerHTML = `
+                <strong>${place.name.split(",")[0]}</strong>
+                <span>${place.name}</span>
+            `;
+
+            div.onclick = () => {
+                setLocation(place.lat, place.lon, place.name);
+                suggestions.innerHTML = "";
+            };
+
+            suggestions.appendChild(div);
+        });
+    }
+
+    let timeout;
+
+    input.addEventListener("input", () => {
+
+        clearTimeout(timeout);
+
+        timeout = setTimeout(async () => {
+
+            const query = input.value.trim();
+
+            if (query.length < 2) {
+                suggestions.innerHTML = "";
+                return;
+            }
+
+            let data = [];
+
+            try {
+                const res = await fetch(
+                    `/api/location-search?q=${encodeURIComponent(query)}`
+                );
+
+                if (!res.ok) {
+                    throw new Error("Location search failed");
+                }
+
+                data = await res.json();
+            } catch (err) {
+                suggestions.innerHTML = '<div class="suggestion-item">Unable to search location</div>';
+                console.log("Location search error:", err);
+                return;
+            }
+
+            renderSuggestions(data);
+
+        }, 300);
+
+    });
+
+    map.on("click", (e) => {
+        setLocation(e.latlng.lat, e.latlng.lng, "Custom Location", true);
+    });
+
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 100);
+
+    // ❌ CLOSE DROPDOWN
+    document.addEventListener("click", (e) => {
+        if (!e.target.closest(".location-box")) {
+            suggestions.innerHTML = "";
+        }
+    });
+
+});
+</script>
+
+{% if session.get('user_id') %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const stack = document.getElementById("notification-stack");
+
+    if (!stack) return;
+
+    let audioContext = null;
+    let audioReady = false;
+    const shownNotifications = new Set();
+
+    function prepareAudio() {
+        if (audioReady) return;
+
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+
+        audioContext = new AudioCtx();
+        audioContext.resume();
+        audioReady = true;
+    }
+
+    function unlockSoundAndPing() {
+        prepareAudio();
+        playNotificationSound("owner_request");
+    }
+
+    ["click", "keydown", "touchstart"].forEach(eventName => {
+        document.addEventListener(eventName, prepareAudio, { once: true });
+    });
+
+    document.querySelectorAll("form[action^='/accept-request'], form[action^='/reject-request']")
+        .forEach(form => {
+            form.addEventListener("submit", unlockSoundAndPing);
+        });
+
+    function playNotificationSound(type) {
+        if (!audioContext || audioContext.state !== "running") return;
+
+        const now = audioContext.currentTime;
+        const gain = audioContext.createGain();
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.14, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.48);
+        gain.connect(audioContext.destination);
+
+        const firstTone = audioContext.createOscillator();
+        const secondTone = audioContext.createOscillator();
+
+        firstTone.type = "sine";
+        secondTone.type = "sine";
+        firstTone.frequency.setValueAtTime(type === "request_rejected" ? 360 : 660, now);
+        secondTone.frequency.setValueAtTime(type === "request_rejected" ? 300 : 880, now + 0.14);
+
+        firstTone.connect(gain);
+        secondTone.connect(gain);
+        firstTone.start(now);
+        firstTone.stop(now + 0.18);
+        secondTone.start(now + 0.16);
+        secondTone.stop(now + 0.48);
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value || "";
+        return div.innerHTML;
+    }
+
+    function showNotification(notification) {
+        if (shownNotifications.has(notification.id)) return;
+
+        shownNotifications.add(notification.id);
+
+        const toast = document.createElement("a");
+        toast.href = notification.link || "#";
+        toast.className = `notification-toast ${notification.type || ""}`;
+        toast.innerHTML = `
+            <div class="notification-icon">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <div class="notification-copy">
+                <strong>${escapeHtml(notification.title)}</strong>
+                <span>${escapeHtml(notification.message)}</span>
+            </div>
+            <button type="button" class="notification-close" aria-label="Close notification">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        `;
+
+        toast.querySelector(".notification-close").addEventListener("click", (event) => {
+            event.preventDefault();
+            toast.remove();
+        });
+
+        stack.prepend(toast);
+        playNotificationSound(notification.type);
+
+        setTimeout(() => {
+            toast.classList.add("leaving");
+            setTimeout(() => toast.remove(), 300);
+        }, 7000);
+    }
+
+    async function checkNotifications() {
+        try {
+            const res = await fetch("/notifications/feed", {
+                headers: { "Accept": "application/json" }
+            });
+
+            if (!res.ok) return;
+
+            const data = await res.json();
+            (data.notifications || []).forEach(showNotification);
+        } catch (err) {
+            console.log("Notification check failed:", err);
+        }
+    }
+
+    checkNotifications();
+    setInterval(checkNotifications, 6000);
+});
+</script>
+{% endif %}
+
+
+</body>
+
+</html>
