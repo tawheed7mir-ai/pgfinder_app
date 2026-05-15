@@ -115,6 +115,16 @@ body{
     color:#64748b;
 }
 
+.auth-error{
+    margin:0 0 16px;
+    padding:12px 14px;
+    border-radius:14px;
+    background:#fff1f2;
+    color:#be123c;
+    font-size:14px;
+    font-weight:700;
+}
+
 .field{
     position:relative;
     margin-top:13px;
@@ -205,6 +215,10 @@ body{
             <h2>Create Account</h2>
             <p>Start your PG Finder journey.</p>
 
+            {% if error %}
+            <div class="auth-error">{{ error }}</div>
+            {% endif %}
+
             <form method="POST">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                 <div class="field">
@@ -214,7 +228,7 @@ body{
 
                 <div class="field">
                     <i class="fa-solid fa-envelope"></i>
-                    <input name="email" placeholder="Email address" required>
+                    <input type="email" name="email" placeholder="Email address" required>
                 </div>
 
                 <div class="field">
