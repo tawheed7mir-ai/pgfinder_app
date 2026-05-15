@@ -44,7 +44,7 @@
 
             <div class="sent-request-image">
                 {% if req.image %}
-                <img src="{{ url_for('static', filename='images/' + req.image) }}" alt="" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
+                <img src="{{ image_src(req.image) }}" alt="" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
                 {% else %}
                 <div class="sent-request-fallback">
                     <i class="fa-solid fa-house-chimney"></i>

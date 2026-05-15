@@ -76,12 +76,18 @@ async function filterCategory(name){
 
     container.innerHTML = "";
 
+    const listingImageSrc = (image) => {
+        if (!image) return "/static/images/aesthetic-room-decor.jpg";
+        if (image.startsWith("http://") || image.startsWith("https://")) return image;
+        return `/static/images/${image}`;
+    };
+
     data.forEach(item => {
 
         container.innerHTML += `
         <div class="card">
 
-            <img src="/static/images/${item.image || 'aesthetic-room-decor.jpg'}" onerror="this.onerror=null; this.src='/static/images/aesthetic-room-decor.jpg';">
+            <img src="${listingImageSrc(item.image)}" onerror="this.onerror=null; this.src='/static/images/aesthetic-room-decor.jpg';">
 
             <div class="content">
 

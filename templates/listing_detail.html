@@ -32,11 +32,11 @@
 
         <div class="detail-pro-gallery">
             {% if images %}
-            <img class="main-image" src="{{ url_for('static', filename='images/' + images[0]['image']) }}" alt="" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
+            <img class="main-image" src="{{ image_src(images[0]['image']) }}" alt="" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
 
             <div class="thumbs">
                 {% for img in images %}
-                <img onclick="changeImage(this.src)" src="{{ url_for('static', filename='images/' + img['image']) }}" alt="" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
+                <img onclick="changeImage(this.src)" src="{{ image_src(img['image']) }}" alt="" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
                 {% endfor %}
             </div>
             {% else %}

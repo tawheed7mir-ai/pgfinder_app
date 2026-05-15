@@ -13,6 +13,9 @@ DB_NAME=pgfinder
 FLASK_ENV=production
 FLASK_DEBUG=0
 MAX_CONTENT_LENGTH=8388608
+CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+CLOUDINARY_API_KEY=your-cloudinary-api-key
+CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 ```
 
 Generate a strong `SECRET_KEY`:
@@ -40,6 +43,9 @@ DB_NAME=pgfinder
 FLASK_ENV=development
 FLASK_DEBUG=1
 MAX_CONTENT_LENGTH=8388608
+CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+CLOUDINARY_API_KEY=your-cloudinary-api-key
+CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 ```
 
 Then run:
@@ -49,6 +55,8 @@ venv\Scripts\python.exe app.py
 ```
 
 The app will create the `pgfinder` database and tables automatically if your local MySQL server is running and the user has permission.
+
+If the Cloudinary variables are set, new listing images upload to Cloudinary. If they are missing, local development falls back to saving images in `static/images`.
 
 ## Production Start Command
 

@@ -2,7 +2,7 @@
 # FULL MYSQL UPDATED app.py
 # =========================
 
-from flask import Flask, render_template, request, redirect, session, flash, jsonify, make_response, abort
+from flask import Flask, render_template, request, redirect, session, flash, jsonify, make_response, abort, url_for
 import mysql.connector
 import requests
 import os
@@ -10,6 +10,12 @@ import math
 import secrets
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+
+try:
+    import cloudinary
+    import cloudinary.uploader
+except ImportError:
+    cloudinary = None
 
 
 def load_env_file(path=".env"):
@@ -46,6 +52,22 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", 8 * 1024 * 1024))
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "avif"}
+
+CLOUDINARY_CLOUD_NAME = os.environ.get("CLOUDINARY_CLOUD_NAME")
+CLOUDINARY_API_KEY = os.environ.get("CLOUDINARY_API_KEY")
+CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET")
+CLOUDINARY_ENABLED = all([CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET])
+
+if CLOUDINARY_ENABLED:
+    if cloudinary is None:
+        raise RuntimeError("Cloudinary variables are set, but the cloudinary package is not installed")
+
+    cloudinary.config(
+        cloud_name=CLOUDINARY_CLOUD_NAME,
+        api_key=CLOUDINARY_API_KEY,
+        api_secret=CLOUDINARY_API_SECRET,
+        secure=True
+    )
 
 INDIA_MAP_CENTER = {
     "lat": 22.9734,
@@ -140,8 +162,13 @@ def ensure_database_schema():
         CREATE TABLE IF NOT EXISTS listing_images (
             id INT AUTO_INCREMENT PRIMARY KEY,
             listing_id INT NOT NULL,
-            image VARCHAR(255) NOT NULL
+            image TEXT NOT NULL
         )
+    """)
+
+    cursor.execute("""
+        ALTER TABLE listing_images
+        MODIFY image TEXT NOT NULL
     """)
 
     cursor.execute("""
@@ -183,7 +210,10 @@ def csrf_token():
 
 @app.context_processor
 def inject_csrf_token():
-    return {"csrf_token": csrf_token}
+    return {
+        "csrf_token": csrf_token,
+        "image_src": image_src
+    }
 
 
 @app.before_request
@@ -213,14 +243,34 @@ def save_uploaded_image(file):
     if not allowed_image(file.filename):
         abort(400, "Only JPG, PNG, WEBP, and AVIF images are allowed")
 
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-
     filename = secure_filename(file.filename)
     name, extension = os.path.splitext(filename)
+
+    if CLOUDINARY_ENABLED:
+        upload = cloudinary.uploader.upload(
+            file,
+            folder="pgfinder/listings",
+            public_id=f"{name[:60]}-{secrets.token_hex(8)}",
+            resource_type="image",
+            overwrite=False
+        )
+        return upload["secure_url"]
+
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     unique_filename = f"{name[:60]}-{secrets.token_hex(8)}{extension.lower()}"
     file.save(os.path.join(app.config["UPLOAD_FOLDER"], unique_filename))
 
     return unique_filename
+
+
+def image_src(image):
+    if not image:
+        return url_for("static", filename="images/aesthetic-room-decor.jpg")
+
+    if str(image).startswith(("http://", "https://")):
+        return image
+
+    return url_for("static", filename=f"images/{image}")
 
 
 def is_owner_or_admin():
