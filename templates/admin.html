@@ -385,7 +385,7 @@
                     {% for listing in listings %}
                     <div class="listing-row">
                         {% if listing.image %}
-                        <img src="{{ url_for('static', filename='images/' + listing.image) }}" alt="">
+                        <img src="{{ url_for('static', filename='images/' + listing.image) }}" alt="" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
                         {% else %}
                         <img src="https://via.placeholder.com/160x120" alt="">
                         {% endif %}

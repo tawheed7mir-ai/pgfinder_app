@@ -103,7 +103,7 @@
                 <div class="current-images">
                     {% if images %}
                         {% for image in images %}
-                        <img src="{{ url_for('static', filename='images/' + image.image) }}" alt="Listing image">
+                        <img src="{{ url_for('static', filename='images/' + image.image) }}" alt="Listing image" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
                         {% endfor %}
                     {% else %}
                         <div class="image-empty">

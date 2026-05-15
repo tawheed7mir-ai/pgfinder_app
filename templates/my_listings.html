@@ -59,7 +59,7 @@
 
             <div class="owner-listing-media">
                 {% if item.images|length > 0 %}
-                <img src="{{ url_for('static', filename='images/' + item.images[0]['image']) }}" alt="">
+                <img src="{{ url_for('static', filename='images/' + item.images[0]['image']) }}" alt="" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
                 {% else %}
                 <div class="owner-listing-fallback">
                     <i class="fa-solid fa-house-chimney"></i>

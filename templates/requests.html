@@ -45,7 +45,7 @@
 
             <div class="owner-request-media">
                 {% if req.image %}
-                <img src="{{ url_for('static', filename='images/' + req.image) }}" alt="">
+                <img src="{{ url_for('static', filename='images/' + req.image) }}" alt="" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
                 {% else %}
                 <div class="request-image-fallback">
                     <i class="fa-solid fa-house-chimney"></i>

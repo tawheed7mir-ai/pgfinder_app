@@ -10,7 +10,8 @@
 
             <img
             class="slide {% if loop.index == 1 %}active-slide{% endif %}"
-            src="{{ url_for('static', filename='images/' + img['image']) }}">
+            src="{{ url_for('static', filename='images/' + img['image']) }}"
+            onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
 
             {% endfor %}
 

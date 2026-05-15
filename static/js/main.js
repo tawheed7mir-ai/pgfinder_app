@@ -81,7 +81,7 @@ async function filterCategory(name){
         container.innerHTML += `
         <div class="card">
 
-            <img src="/static/images/${item.image || 'default.jpg'}">
+            <img src="/static/images/${item.image || 'aesthetic-room-decor.jpg'}" onerror="this.onerror=null; this.src='/static/images/aesthetic-room-decor.jpg';">
 
             <div class="content">
 
