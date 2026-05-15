@@ -49,6 +49,73 @@ def db():
     return conn
 
 
+def ensure_database_schema():
+
+    conn = db()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            email VARCHAR(255) NOT NULL UNIQUE,
+            password VARCHAR(255) NOT NULL,
+            phone VARCHAR(30) NULL,
+            role VARCHAR(30) NOT NULL DEFAULT 'user'
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS listings (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            price VARCHAR(50) NOT NULL,
+            room_type VARCHAR(30) NULL,
+            sharing_type VARCHAR(30) NULL,
+            amenities TEXT NULL,
+            location TEXT NOT NULL,
+            description TEXT NOT NULL,
+            latitude VARCHAR(80) NULL,
+            longitude VARCHAR(80) NULL,
+            owner_id INT NOT NULL
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS listing_images (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            listing_id INT NOT NULL,
+            image VARCHAR(255) NOT NULL
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS requests (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            listing_id INT NOT NULL,
+            user_id INT NOT NULL,
+            message TEXT NULL,
+            phone VARCHAR(30) NULL,
+            email VARCHAR(255) NULL,
+            status VARCHAR(30) NOT NULL DEFAULT 'pending'
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS contact_messages (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NULL,
+            name VARCHAR(255) NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            subject VARCHAR(255) NOT NULL,
+            message TEXT NOT NULL
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
 def csrf_token():
     token = session.get("_csrf_token")
 
@@ -130,6 +197,8 @@ def calculate_distance_km(lat1, lon1, lat2, lon2):
 
 def ensure_contact_messages_user_id():
 
+    ensure_database_schema()
+
     conn = db()
     cursor = conn.cursor(dictionary=True)
 
@@ -167,6 +236,8 @@ def ensure_contact_messages_user_id():
 
 
 def ensure_listing_filter_columns():
+
+    ensure_database_schema()
 
     conn = db()
     cursor = conn.cursor(dictionary=True)
@@ -207,6 +278,8 @@ def ensure_listing_filter_columns():
 
 
 def ensure_user_auth_columns():
+
+    ensure_database_schema()
 
     conn = db()
     cursor = conn.cursor(dictionary=True)

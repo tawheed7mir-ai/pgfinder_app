@@ -32,7 +32,7 @@ pip install -r requirements.txt
 Use this on Linux hosting platforms:
 
 ```bash
-gunicorn app:app
+gunicorn app:app --bind 0.0.0.0:$PORT
 ```
 
 For local Windows testing with your current database password:
