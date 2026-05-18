@@ -169,10 +169,10 @@
 
 {% if total > 4 and not filters_active and not nearby_active and not category_filter %}
 <div class="view-more-container">
-    <a href="/find" class="view-more-btn">
+    <button type="button" class="view-more-btn expand-listings-trigger">
         <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
         View More Listings
-    </a>
+    </button>
 </div>
 {% endif %}
 
@@ -453,6 +453,56 @@
 </section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+async function expandListings(event) {
+    event.preventDefault();
+
+    const trigger = event.currentTarget;
+    const container = document.getElementById("listing-container");
+    const viewMoreContainer = document.querySelector(".view-more-container");
+
+    if (!container) return;
+
+    trigger.setAttribute("aria-busy", "true");
+    trigger.classList.add("loading");
+    container.classList.add("loading-listings");
+
+    const originalHtml = trigger.innerHTML;
+    trigger.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Loading listings`;
+
+    try {
+        const res = await fetch("/all-listings", {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        });
+
+        if (!res.ok) {
+            throw new Error("Unable to load listings");
+        }
+
+        container.innerHTML = await res.text();
+        container.classList.add("expanded-listings");
+
+        if (viewMoreContainer) {
+            viewMoreContainer.remove();
+        }
+
+        document.getElementById("listings-section")
+            .scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (error) {
+        trigger.innerHTML = originalHtml;
+        trigger.classList.remove("loading");
+        trigger.removeAttribute("aria-busy");
+    } finally {
+        container.classList.remove("loading-listings");
+    }
+}
+
+document.querySelectorAll(".expand-listings-trigger").forEach((trigger) => {
+    trigger.addEventListener("click", expandListings);
+});
+</script>
 <script>
 
 const heroSlides = document.querySelectorAll(".hero-slide");

@@ -61,6 +61,44 @@
                 {{ listing["location"] }}
             </div>
 
+            {% set selected_amenities = (listing.get("amenities") or "").split(",") %}
+            {% set has_amenities = selected_amenities|reject("equalto", "")|list|length > 0 %}
+            {% set amenity_labels = {
+                "wifi": ("fa-solid fa-wifi", "Wi-Fi"),
+                "food": ("fa-solid fa-utensils", "Food"),
+                "parking": ("fa-solid fa-square-parking", "Parking"),
+                "ac": ("fa-solid fa-snowflake", "AC"),
+                "laundry": ("fa-solid fa-shirt", "Laundry"),
+                "attached_bath": ("fa-solid fa-bath", "Attached bath")
+            } %}
+            <section class="detail-amenities">
+                <div class="detail-section-head">
+                    <span><i class="fa-solid fa-sparkles"></i></span>
+                    <div>
+                        <h2>What this stay offers</h2>
+                        <p>Facilities shared by the owner for this listing.</p>
+                    </div>
+                </div>
+
+                <div class="detail-amenity-grid">
+                    {% for key, amenity in amenity_labels.items() %}
+                        {% if key in selected_amenities %}
+                        <div class="detail-amenity-chip active">
+                            <i class="{{ amenity[0] }}"></i>
+                            <span>{{ amenity[1] }}</span>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if not has_amenities %}
+                    <div class="detail-amenity-empty">
+                        <i class="fa-regular fa-circle-info"></i>
+                        <span>No amenities were added by the owner yet.</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
             <p class="detail-description">
                 {{ listing["description"] }}
             </p>
@@ -278,6 +316,109 @@
     margin:18px 0;
     color:#64748b;
     line-height:1.8;
+}
+
+.detail-amenities{
+    margin-top:16px;
+    padding:16px;
+    border:1px solid #e8edf3;
+    border-radius:20px;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,250,252,0.92)),
+        radial-gradient(circle at 0% 0%, rgba(255,56,92,0.08), transparent 32%),
+        radial-gradient(circle at 100% 20%, rgba(24,169,153,0.10), transparent 30%);
+    box-shadow:0 14px 36px rgba(15,23,42,0.06);
+}
+
+.detail-section-head{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    margin-bottom:13px;
+}
+
+.detail-section-head > span{
+    width:38px;
+    height:38px;
+    flex:0 0 38px;
+    display:grid;
+    place-items:center;
+    border-radius:14px;
+    background:#111827;
+    color:white;
+}
+
+.detail-section-head h2{
+    color:#111827;
+    font-size:17px;
+    line-height:1.2;
+}
+
+.detail-section-head p{
+    margin-top:3px;
+    color:#64748b;
+    font-size:12px;
+    font-weight:700;
+}
+
+.detail-amenity-grid{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    overflow-x:auto;
+    scrollbar-width:none;
+}
+
+.detail-amenity-grid::-webkit-scrollbar{
+    display:none;
+}
+
+.detail-amenity-chip{
+    min-height:36px;
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding:0 10px;
+    border:1px solid #e6eaf0;
+    border-radius:14px;
+    background:white;
+    color:#334155;
+    font-size:12px;
+    font-weight:900;
+    transition:transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.detail-amenity-chip i{
+    width:27px;
+    height:27px;
+    flex:0 0 27px;
+    display:grid;
+    place-items:center;
+    border-radius:10px;
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.detail-amenity-chip:hover{
+    transform:translateY(-2px);
+    border-color:rgba(24,169,153,0.28);
+    box-shadow:0 12px 26px rgba(15,23,42,0.08);
+}
+
+.detail-amenity-empty{
+    width:100%;
+    min-height:44px;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:0 12px;
+    border:1px dashed #cbd5e1;
+    border-radius:14px;
+    background:#f8fafc;
+    color:#64748b;
+    font-size:13px;
+    font-weight:800;
 }
 
 .owner-box{
@@ -504,6 +645,11 @@
     .detail-action-row{
         grid-template-columns:1fr;
     }
+
+    .detail-amenity-grid{
+        margin-right:-6px;
+        padding-bottom:2px;
+    }
 }
 
 /* Compact premium detail polish */
@@ -588,6 +734,49 @@
     color:#5b6677;
     font-size:14px;
     line-height:1.7;
+}
+
+.detail-amenities{
+    margin-top:12px;
+    padding:14px;
+    border-radius:18px;
+}
+
+.detail-section-head{
+    margin-bottom:11px;
+}
+
+.detail-section-head > span{
+    width:34px;
+    height:34px;
+    flex-basis:34px;
+    border-radius:12px;
+}
+
+.detail-section-head h2{
+    font-size:15px;
+}
+
+.detail-section-head p{
+    font-size:11px;
+}
+
+.detail-amenity-grid{
+    gap:7px;
+}
+
+.detail-amenity-chip{
+    min-height:38px;
+    padding:0 9px;
+    border-radius:12px;
+    font-size:11px;
+}
+
+.detail-amenity-chip i{
+    width:24px;
+    height:24px;
+    flex-basis:24px;
+    border-radius:9px;
 }
 
 .owner-box{
