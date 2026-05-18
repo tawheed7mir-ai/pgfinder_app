@@ -3482,6 +3482,12 @@ REQUESTS PAGE
     line-height:1.12;
 }
 
+.discovery-rotator{
+    display:inline-block;
+    color:#18a999;
+    will-change:transform, opacity, filter;
+}
+
 .home-discovery-strip p{
     width:min(640px, 100%);
     margin-top:8px;
@@ -3813,9 +3819,6 @@ REQUESTS PAGE
 .find-filter-panel{
     width:100%;
     margin:0;
-    position:sticky;
-    top:82px;
-    z-index:12;
     scroll-margin-top:96px;
     border-color:rgba(255,255,255,0.84);
     background:
@@ -8610,13 +8613,11 @@ body{
     }
 
     .find-filter-panel{
-        position:sticky;
-        top:76px;
-        z-index:12;
+        position:relative;
         margin:0;
         padding:10px;
-        max-height:calc(100vh - 88px);
-        overflow:auto;
+        max-height:none;
+        overflow:visible;
         border-radius:18px;
         background:rgba(255,255,255,0.96);
         box-shadow:0 16px 44px rgba(15,23,42,0.12);
@@ -8773,11 +8774,11 @@ body{
         width:100% !important;
         margin:0 !important;
         padding:10px 12px !important;
-        position:sticky !important;
-        top:118px !important;
-        z-index:17 !important;
-        max-height:48vh !important;
-        overflow:auto !important;
+        position:relative !important;
+        top:auto !important;
+        z-index:auto !important;
+        max-height:none !important;
+        overflow:visible !important;
         border-width:1px 0 !important;
         border-radius:0 !important;
         background:rgba(255,255,255,0.98) !important;

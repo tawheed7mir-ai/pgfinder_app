@@ -34,8 +34,8 @@
     <div class="hero-content">
         <span class="hero-kicker">Verified PGs, rooms, and apartments</span>
         <h1>Find a place that fits your routine.</h1>
-        <p id="hero-subtitle">Search real listings, compare rent and amenities, and connect with owners from one polished marketplace.</p>
-        <a href="/find" class="hero-btn">Explore Listings</a>
+        <p id="hero-subtitle">Search real listings, compare rent and amenities, and connect with owners</p>
+        <a href="#listings-section" class="hero-btn">Explore Listings</a>
     </div>
 
 </div>
@@ -80,7 +80,10 @@
 <section class="home-discovery-strip">
     <div>
         <span class="section-kicker">Smart discovery</span>
-        <h2>Search fast. Refine only when you need more control.</h2>
+        <h2>
+            Search fast.
+            <span class="discovery-rotator" id="discovery-rotator">Find stays near campus.</span>
+        </h2>
         <p>Use the search box for an area, Nearby for stays around you, or Advanced filters for budget, room type, sharing, and amenities.</p>
     </div>
 
@@ -623,6 +626,48 @@ setInterval(swapHeroSubtitle, 3000);
 </script>
 
 <script>
+const discoveryRotator = document.getElementById("discovery-rotator");
+const discoveryPhrases = [
+    "Find stays near campus.",
+    "Compare rent before visiting.",
+    "Spot Wi-Fi, food, and parking faster.",
+    "Use nearby search when location matters.",
+    "Shortlist rooms without the chaos."
+];
+let discoveryPhraseIndex = 0;
+
+function swapDiscoveryPhrase() {
+    if (!discoveryRotator) return;
+
+    discoveryPhraseIndex = (discoveryPhraseIndex + 1) % discoveryPhrases.length;
+    const nextPhrase = discoveryPhrases[discoveryPhraseIndex];
+
+    if (!window.gsap) {
+        discoveryRotator.textContent = nextPhrase;
+        return;
+    }
+
+    gsap.to(discoveryRotator, {
+        y: -10,
+        opacity: 0,
+        filter: "blur(5px)",
+        duration: 0.24,
+        ease: "power2.in",
+        onComplete: () => {
+            discoveryRotator.textContent = nextPhrase;
+            gsap.fromTo(
+                discoveryRotator,
+                { y: 12, opacity: 0, filter: "blur(5px)" },
+                { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.42, ease: "power3.out" }
+            );
+        }
+    });
+}
+
+setInterval(swapDiscoveryPhrase, 2600);
+</script>
+
+<script>
 const homeNearbyBtn = document.getElementById("home-nearby-btn");
 const homeNearbyStatus = document.getElementById("home-nearby-status");
 const homeSearchInput = document.getElementById("home-search-input");
@@ -672,6 +717,4 @@ if (homeNearbyBtn) {
 </script>
 
 {% endblock %}
-
-
 

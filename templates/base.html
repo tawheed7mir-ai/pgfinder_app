@@ -457,7 +457,10 @@ document.addEventListener("DOMContentLoaded", () => {
         suggestions.innerHTML = "";
 
         if (data.length === 0) {
-            suggestions.innerHTML = '<div class="suggestion-item">No locations found</div>';
+            const empty = document.createElement("div");
+            empty.className = "suggestion-item";
+            empty.textContent = "No locations found";
+            suggestions.appendChild(empty);
             return;
         }
 
@@ -465,10 +468,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const div = document.createElement("div");
             div.className = "suggestion-item";
-            div.innerHTML = `
-                <strong>${place.name.split(",")[0]}</strong>
-                <span>${place.name}</span>
-            `;
+
+            const title = document.createElement("strong");
+            title.textContent = (place.name || "").split(",")[0];
+
+            const detail = document.createElement("span");
+            detail.textContent = place.name || "";
+
+            div.appendChild(title);
+            div.appendChild(detail);
 
             div.onclick = () => {
                 setLocation(place.lat, place.lon, place.name);
@@ -507,7 +515,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 data = await res.json();
             } catch (err) {
-                suggestions.innerHTML = '<div class="suggestion-item">Unable to search location</div>';
+                suggestions.innerHTML = "";
+                const errorItem = document.createElement("div");
+                errorItem.className = "suggestion-item";
+                errorItem.textContent = "Unable to search location";
+                suggestions.appendChild(errorItem);
                 console.log("Location search error:", err);
                 return;
             }

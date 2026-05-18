@@ -40,11 +40,23 @@ load_env_file()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") == "production"
+)
 
 if os.environ.get("FLASK_ENV") == "production" and app.secret_key == "dev-only-change-me":
     raise RuntimeError("SECRET_KEY must be set in production")
 
-if os.environ.get("FLASK_ENV") == "production" and not os.environ.get("DB_PASSWORD"):
+production_db_password = (
+    os.environ.get("DB_PASSWORD")
+    or os.environ.get("MYSQLPASSWORD")
+    or os.environ.get("MYSQL_ROOT_PASSWORD")
+    or os.environ.get("MYSQL_PASSWORD")
+)
+
+if os.environ.get("FLASK_ENV") == "production" and not production_db_password:
     raise RuntimeError("DB_PASSWORD must be set in production")
 
 UPLOAD_FOLDER = "static/images"
@@ -137,8 +149,14 @@ def db_config(include_database=True):
     return config, database_name
 
 
+def validate_database_name(database_name):
+    if not database_name or not all(char.isalnum() or char == "_" for char in database_name):
+        raise RuntimeError("Database name may only contain letters, numbers, and underscores")
+
+
 def db():
     config, database_name = db_config()
+    validate_database_name(database_name)
 
     try:
         conn = mysql.connector.connect(**config)
@@ -260,6 +278,14 @@ def protect_post_requests():
         abort(400, "Invalid CSRF token")
 
 
+@app.after_request
+def set_security_headers(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    return response
+
+
 def allowed_image(filename):
     if not filename or "." not in filename:
         return False
@@ -311,6 +337,10 @@ def is_owner_or_admin():
 
 def is_admin():
     return session.get("role") == "admin"
+
+
+def is_safe_redirect_path(path):
+    return bool(path) and path.startswith("/") and not path.startswith("//")
 
 
 def calculate_distance_km(lat1, lon1, lat2, lon2):
@@ -483,13 +513,18 @@ def initialize_notification_state(user_id, role):
 # =========================
 def get_coordinates(place):
 
-    url = f"https://nominatim.openstreetmap.org/search?q={place}&format=json"
+    url = "https://nominatim.openstreetmap.org/search"
 
     headers = {
         "User-Agent": "PGFinder"
     }
 
-    response = requests.get(url, headers=headers)
+    response = requests.get(
+        url,
+        params={"q": place, "format": "json"},
+        headers=headers,
+        timeout=6
+    )
 
     data = response.json()
 
@@ -919,7 +954,7 @@ def login():
     if "user_id" in session:
         next_url = request.args.get("next") or "/"
 
-        if not next_url.startswith("/"):
+        if not is_safe_redirect_path(next_url):
             next_url = "/"
 
         return redirect(next_url)
@@ -965,12 +1000,13 @@ def login():
 
         if user and password_ok:
 
+            session.clear()
             session['user_id'] = user['id']
             session['username'] = user['name']
             session['role'] = user['role']
             initialize_notification_state(user["id"], user["role"])
 
-            if not next_url.startswith("/"):
+            if not is_safe_redirect_path(next_url):
                 next_url = "/"
 
             return redirect(next_url)
