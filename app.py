@@ -52,6 +52,17 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", 8 * 1024 * 1024))
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "avif"}
+RENT_PERIODS = {"day", "week", "month"}
+PRICE_MONTHLY_SQL = """
+(
+    CAST(price AS UNSIGNED) *
+    CASE COALESCE(rent_period, 'month')
+        WHEN 'day' THEN 30
+        WHEN 'week' THEN 4
+        ELSE 1
+    END
+)
+"""
 
 CLOUDINARY_CLOUD_NAME = os.environ.get("CLOUDINARY_CLOUD_NAME")
 CLOUDINARY_API_KEY = os.environ.get("CLOUDINARY_API_KEY")
@@ -73,6 +84,26 @@ INDIA_MAP_CENTER = {
     "lat": 22.9734,
     "lng": 78.6569
 }
+
+
+@app.template_filter("rent_period_label")
+def rent_period_label(value):
+    labels = {
+        "day": "day",
+        "week": "week",
+        "month": "month"
+    }
+
+    return labels.get(value or "month", "month")
+
+
+def clean_rent_period(value):
+    value = (value or "month").strip().lower()
+
+    if value not in RENT_PERIODS:
+        return "month"
+
+    return value
 
 
 # =========================
@@ -147,6 +178,7 @@ def ensure_database_schema():
             id INT AUTO_INCREMENT PRIMARY KEY,
             title VARCHAR(255) NOT NULL,
             price VARCHAR(50) NOT NULL,
+            rent_period VARCHAR(20) NOT NULL DEFAULT 'month',
             room_type VARCHAR(30) NULL,
             sharing_type VARCHAR(30) NULL,
             amenities TEXT NULL,
@@ -348,6 +380,7 @@ def ensure_listing_filter_columns():
     cursor = conn.cursor(dictionary=True)
 
     required_columns = {
+        "rent_period": "VARCHAR(20) NOT NULL DEFAULT 'month'",
         "room_type": "VARCHAR(30) NULL",
         "sharing_type": "VARCHAR(30) NULL",
         "amenities": "TEXT NULL"
@@ -562,6 +595,7 @@ def reverse_location():
 # HOME
 # =========================
 @app.route("/")
+@app.route("/find")
 def home():
 
     ensure_listing_filter_columns()
@@ -604,13 +638,13 @@ def home():
         params.extend([search_value, search_value, search_value])
 
     if category_filter == "budget":
-        where_clauses.append("CAST(price AS UNSIGNED) <= %s")
+        where_clauses.append(f"{PRICE_MONTHLY_SQL} <= %s")
         params.append(7000)
     elif category_filter == "premium":
-        where_clauses.append("CAST(price AS UNSIGNED) BETWEEN %s AND %s")
+        where_clauses.append(f"{PRICE_MONTHLY_SQL} BETWEEN %s AND %s")
         params.extend([10000, 20000])
     elif category_filter == "luxury":
-        where_clauses.append("CAST(price AS UNSIGNED) > %s")
+        where_clauses.append(f"{PRICE_MONTHLY_SQL} > %s")
         params.append(20000)
 
     room_keywords = {
@@ -682,19 +716,19 @@ def home():
             params.extend([amenity, '%' + keyword + '%', '%' + keyword + '%'])
 
     if min_price:
-        where_clauses.append("CAST(price AS UNSIGNED) >= %s")
+        where_clauses.append(f"{PRICE_MONTHLY_SQL} >= %s")
         params.append(min_price)
 
     if max_price:
-        where_clauses.append("CAST(price AS UNSIGNED) <= %s")
+        where_clauses.append(f"{PRICE_MONTHLY_SQL} <= %s")
         params.append(max_price)
 
     order_by = "id DESC"
 
     if sort == "price_low":
-        order_by = "CAST(price AS UNSIGNED) ASC"
+        order_by = f"{PRICE_MONTHLY_SQL} ASC"
     elif sort == "price_high":
-        order_by = "CAST(price AS UNSIGNED) DESC"
+        order_by = f"{PRICE_MONTHLY_SQL} DESC"
 
     query = "SELECT * FROM listings"
 
@@ -791,7 +825,8 @@ def home():
         search or category_filter or room_type or sharing or min_price or max_price or amenities or sort != "newest"
     )
 
-    limited_data = data if filters_active or nearby_active else data[:4]
+    is_find_page = request.path == "/find"
+    limited_data = data if is_find_page or filters_active or nearby_active else data[:4]
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         response = make_response(render_template(
@@ -803,7 +838,7 @@ def home():
 
     return render_template(
 
-        "home.html",
+        "find.html" if is_find_page else "home.html",
 
         data=limited_data,
         total=len(data),
@@ -1008,6 +1043,7 @@ def add_listing():
 
         title = request.form["title"]
         price = request.form["price"]
+        rent_period = clean_rent_period(request.form.get("rent_period"))
         room_type = request.form.get("room_type", "")
         sharing_type = request.form.get("sharing_type", "")
         amenities = ",".join(request.form.getlist("amenities"))
@@ -1030,14 +1066,15 @@ def add_listing():
         cursor.execute("""
             INSERT INTO listings
             (
-                title, price, room_type, sharing_type, amenities,
+                title, price, rent_period, room_type, sharing_type, amenities,
                 location, description, latitude, longitude, owner_id
             )
 
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, (
             title,
             price,
+            rent_period,
             room_type,
             sharing_type,
             amenities,
@@ -1098,25 +1135,25 @@ def category(name):
 
     if name == "luxury":
 
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT * FROM listings
-            WHERE CAST(price AS UNSIGNED) > 20000
+            WHERE {PRICE_MONTHLY_SQL} > 20000
             ORDER BY id DESC
         """)
 
     elif name == "budget":
 
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT * FROM listings
-            WHERE CAST(price AS UNSIGNED) <= 7000
+            WHERE {PRICE_MONTHLY_SQL} <= 7000
             ORDER BY id DESC
         """)
 
     elif name == "premium":
 
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT * FROM listings
-            WHERE CAST(price AS UNSIGNED)
+            WHERE {PRICE_MONTHLY_SQL}
             BETWEEN 10000 AND 20000
             ORDER BY id DESC
         """)
@@ -1205,8 +1242,8 @@ def category(name):
         )
 
     return render_template(
-        "home.html",
-        data=data[:4],
+        "find.html",
+        data=data,
         total=len(data),
         nearby_active=nearby_active,
         nearby_radius=radius_km,
@@ -1280,7 +1317,7 @@ def all_listings():
         )
 
     return render_template(
-        "home.html",
+        "find.html",
         data=data,
         total=len(data),
         nearby_active=False,
@@ -1308,6 +1345,8 @@ def all_listings():
 # =========================
 @app.route("/listing/<int:id>")
 def listing_detail(id):
+
+    ensure_listing_filter_columns()
 
     conn = db()
     cursor = conn.cursor(dictionary=True)
@@ -1425,6 +1464,8 @@ def my_listings():
 
     if not is_owner_or_admin():
         return redirect("/")
+
+    ensure_listing_filter_columns()
 
     conn = db()
     cursor = conn.cursor(dictionary=True)
@@ -1613,6 +1654,8 @@ def my_requests():
     if "user_id" not in session:
         return redirect("/login")
 
+    ensure_listing_filter_columns()
+
     conn = db()
     cursor = conn.cursor(dictionary=True)
 
@@ -1622,6 +1665,7 @@ def my_requests():
             listings.title,
             listings.location,
             listings.price,
+            listings.rent_period,
             listings.latitude,
             listings.longitude,
             users.name AS owner_name,
@@ -1772,6 +1816,8 @@ def admin_dashboard():
 
     if not is_admin():
         return redirect("/")
+
+    ensure_listing_filter_columns()
 
     conn = db()
     cursor = conn.cursor(dictionary=True)
@@ -2234,6 +2280,7 @@ def edit_listing(id):
 
         title = request.form["title"]
         price = request.form["price"]
+        rent_period = clean_rent_period(request.form.get("rent_period"))
         room_type = request.form.get("room_type", "")
         sharing_type = request.form.get("sharing_type", "")
         amenities = ",".join(request.form.getlist("amenities"))
@@ -2250,6 +2297,7 @@ def edit_listing(id):
             SET
             title=%s,
             price=%s,
+            rent_period=%s,
             room_type=%s,
             sharing_type=%s,
             amenities=%s,
@@ -2260,6 +2308,7 @@ def edit_listing(id):
         """, (
             title,
             price,
+            rent_period,
             room_type,
             sharing_type,
             amenities,

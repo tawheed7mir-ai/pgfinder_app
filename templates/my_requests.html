@@ -87,7 +87,7 @@
                 <div class="sent-request-meta">
                     <span>
                         <i class="fa-solid fa-indian-rupee-sign"></i>
-                        {{ req.price }}/month
+                        {{ req.price }}/{{ req.get("rent_period")|rent_period_label }}
                     </span>
                     <span>
                         <i class="fa-solid fa-user"></i>

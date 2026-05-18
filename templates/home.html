@@ -35,7 +35,7 @@
         <span class="hero-kicker">Verified PGs, rooms, and apartments</span>
         <h1>Find a place that fits your routine.</h1>
         <p id="hero-subtitle">Search real listings, compare rent and amenities, and connect with owners from one polished marketplace.</p>
-        <a href="#listings-section" class="hero-btn">Explore Listings</a>
+        <a href="/find" class="hero-btn">Explore Listings</a>
     </div>
 
 </div>
@@ -43,10 +43,10 @@
 <!-- CATEGORIES -->
 <div class="categories">
 
-    <button class="cat {% if not category_filter or category_filter == 'trending' %}active{% endif %}" onclick="filterCategory(this,'trending')"><i class="fa-solid fa-fire"></i> Trending</button>
-    <button class="cat {% if category_filter == 'budget' %}active{% endif %}" onclick="filterCategory(this,'budget')"><i class="fa-solid fa-wallet"></i> Budget</button>
-    <button class="cat {% if category_filter == 'luxury' %}active{% endif %}" onclick="filterCategory(this,'luxury')"><i class="fa-solid fa-bed"></i> Luxury</button>
-    <button class="cat {% if category_filter == 'premium' %}active{% endif %}" onclick="filterCategory(this,'premium')"><i class="fa-solid fa-star"></i> Premium</button>
+    <a class="cat active" href="/find"><i class="fa-solid fa-fire"></i> Trending</a>
+    <a class="cat" href="/find?category=budget#listings-section"><i class="fa-solid fa-wallet"></i> Budget</a>
+    <a class="cat" href="/find?category=luxury#listings-section"><i class="fa-solid fa-bed"></i> Luxury</a>
+    <a class="cat" href="/find?category=premium#listings-section"><i class="fa-solid fa-star"></i> Premium</a>
 
 </div>
 
@@ -87,170 +87,43 @@
 
 </section>
 
-<!-- DISCOVERY PANEL -->
-<section class="discovery-panel" aria-labelledby="discovery-title">
-
-    <div class="discovery-top">
-        <div>
-            <span class="section-kicker">Smart discovery</span>
-            <h2 id="discovery-title">Search, filter, and find nearby stays</h2>
-        </div>
-        <div class="filter-result-count">
-            <strong>{{ total }}</strong>
-            <span>{{ "match" if total == 1 else "matches" }}</span>
-        </div>
+<section class="home-discovery-strip">
+    <div>
+        <span class="section-kicker">Smart discovery</span>
+        <h2>Search fast. Refine only when you need more control.</h2>
+        <p>Use the search box for an area, Nearby for stays around you, or Advanced filters for budget, room type, sharing, and amenities.</p>
     </div>
 
-    <form class="nearby-actions discovery-nearby" id="nearby-form" method="GET" action="/#listings-section">
-        <input type="hidden" name="nearby" value="1">
-        <input type="hidden" name="lat" id="nearby-lat" value="{{ user_lat or '' }}">
-        <input type="hidden" name="lng" id="nearby-lng" value="{{ user_lng or '' }}">
-        {% if category_filter %}
-        <input type="hidden" name="category" value="{{ category_filter }}">
-        {% endif %}
-        {% if search %}
-        <input type="hidden" name="search" value="{{ search }}">
-        {% endif %}
-        {% if room_type %}
-        <input type="hidden" name="room_type" value="{{ room_type }}">
-        {% endif %}
-        {% if sharing %}
-        <input type="hidden" name="sharing" value="{{ sharing }}">
-        {% endif %}
-        {% if min_price %}
-        <input type="hidden" name="min_price" value="{{ min_price }}">
-        {% endif %}
-        {% if max_price %}
-        <input type="hidden" name="max_price" value="{{ max_price }}">
-        {% endif %}
-        {% if sort and sort != "newest" %}
-        <input type="hidden" name="sort" value="{{ sort }}">
-        {% endif %}
-        {% for amenity in amenities %}
-        <input type="hidden" name="amenity" value="{{ amenity }}">
-        {% endfor %}
-
-        <label class="radius-control">
-            <span>Search radius</span>
-            <select name="radius" id="nearby-radius">
-                <option value="3" {% if nearby_radius == 3 %}selected{% endif %}>3 km</option>
-                <option value="5" {% if nearby_radius == 5 %}selected{% endif %}>5 km</option>
-                <option value="10" {% if nearby_radius == 10 %}selected{% endif %}>10 km</option>
-                <option value="20" {% if nearby_radius == 20 %}selected{% endif %}>20 km</option>
-            </select>
+    <form class="home-search-card" action="/find" method="GET">
+        <label>
+            <i class="fa-solid fa-magnifying-glass-location"></i>
+            <input type="text" name="search" id="home-search-input" placeholder="Search area, college, office, landmark...">
         </label>
-
-        <button type="button" class="nearby-btn" id="nearby-btn">
-            <i class="fa-solid fa-location-crosshairs"></i>
-            Use my location
-        </button>
-
-        {% if nearby_active %}
-        <a href="/" class="nearby-clear">
-            <i class="fa-solid fa-xmark"></i>
-            Clear
-        </a>
-        {% endif %}
-    </form>
-
-    <div class="nearby-status {% if nearby_active %}active{% endif %}" id="nearby-status">
-        {% if nearby_active %}
-            Showing PGs within {{ nearby_radius|int if nearby_radius == nearby_radius|int else nearby_radius }} km, nearest first.
-        {% else %}
-            Your browser will ask permission before sharing location.
-        {% endif %}
-    </div>
-
-    <form class="listing-filters" method="GET" action="/#listings-section">
-
-        {% if nearby_active %}
-        <input type="hidden" name="nearby" value="1">
-        <input type="hidden" name="lat" value="{{ user_lat }}">
-        <input type="hidden" name="lng" value="{{ user_lng }}">
-        <input type="hidden" name="radius" value="{{ nearby_radius }}">
-        {% endif %}
-        {% if category_filter %}
-        <input type="hidden" name="category" value="{{ category_filter }}">
-        {% endif %}
-
-        <label class="filter-field filter-search">
-            <span>Search area or keyword</span>
-            <div>
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" name="search" value="{{ search or '' }}" placeholder="Area, college, Wi-Fi, food...">
-            </div>
-        </label>
-
-        <label class="filter-field">
-            <span>Property type</span>
-            <select name="room_type">
-                <option value="">Any type</option>
-                <option value="pg" {% if room_type == "pg" %}selected{% endif %}>PG</option>
-                <option value="room" {% if room_type == "room" %}selected{% endif %}>Room</option>
-                <option value="studio" {% if room_type == "studio" %}selected{% endif %}>Studio</option>
-                <option value="1bhk" {% if room_type == "1bhk" %}selected{% endif %}>1 BHK</option>
-                <option value="2bhk" {% if room_type == "2bhk" %}selected{% endif %}>2 BHK</option>
-                <option value="3bhk" {% if room_type == "3bhk" %}selected{% endif %}>3 BHK</option>
-            </select>
-        </label>
-
-        <label class="filter-field">
-            <span>Sharing</span>
-            <select name="sharing">
-                <option value="">Any sharing</option>
-                <option value="single" {% if sharing == "single" %}selected{% endif %}>Single / Private</option>
-                <option value="double" {% if sharing == "double" %}selected{% endif %}>Double sharing</option>
-                <option value="triple" {% if sharing == "triple" %}selected{% endif %}>Triple sharing</option>
-                <option value="shared" {% if sharing == "shared" %}selected{% endif %}>Shared</option>
-            </select>
-        </label>
-
-        <label class="filter-field">
-            <span>Min rent</span>
-            <input type="number" name="min_price" value="{{ min_price or '' }}" min="0" placeholder="Rs 5000">
-        </label>
-
-        <label class="filter-field">
-            <span>Max rent</span>
-            <input type="number" name="max_price" value="{{ max_price or '' }}" min="0" placeholder="Rs 15000">
-        </label>
-
-        <label class="filter-field">
-            <span>Sort by</span>
-            <select name="sort">
-                <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest first</option>
-                <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>Price: low to high</option>
-                <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>Price: high to low</option>
-            </select>
-        </label>
-
-        <div class="amenity-filter-group">
-            <span>Popular features</span>
-            <div>
-                <label><input type="checkbox" name="amenity" value="wifi" {% if "wifi" in amenities %}checked{% endif %}><span>Wi-Fi</span></label>
-                <label><input type="checkbox" name="amenity" value="food" {% if "food" in amenities %}checked{% endif %}><span>Food</span></label>
-                <label><input type="checkbox" name="amenity" value="parking" {% if "parking" in amenities %}checked{% endif %}><span>Parking</span></label>
-                <label><input type="checkbox" name="amenity" value="ac" {% if "ac" in amenities %}checked{% endif %}><span>AC</span></label>
-                <label><input type="checkbox" name="amenity" value="laundry" {% if "laundry" in amenities %}checked{% endif %}><span>Laundry</span></label>
-                <label><input type="checkbox" name="amenity" value="attached_bath" {% if "attached_bath" in amenities %}checked{% endif %}><span>Attached bath</span></label>
-            </div>
-        </div>
-
-        <div class="filter-actions">
-            <button type="submit" class="filter-apply-btn">
-                <i class="fa-solid fa-sliders"></i>
-                Apply Filters
+        <div class="home-search-actions">
+            <button type="submit">
+                <span>
+                    <strong>Search</strong>
+                    <small>Area or landmark</small>
+                </span>
+                <i class="fa-solid fa-arrow-right"></i>
             </button>
-            {% if filters_active or nearby_active or category_filter %}
-            <a href="/" class="filter-reset-btn">
-                <i class="fa-solid fa-rotate-left"></i>
-                Reset
+            <button type="button" class="home-nearby-btn" id="home-nearby-btn">
+                <i class="fa-solid fa-location-crosshairs"></i>
+                <span>
+                    <strong>Nearby</strong>
+                    <small>Use my location</small>
+                </span>
+            </button>
+            <a href="/find#filter-strip" class="advanced-search-link">
+                <i class="fa-solid fa-sliders"></i>
+                <span>
+                    <strong>Advanced filters</strong>
+                    <small>Budget, room, sharing</small>
+                </span>
             </a>
-            {% endif %}
         </div>
-
+        <div class="home-nearby-status" id="home-nearby-status">Nearby opens the full search page with listings sorted around your current location.</div>
     </form>
-
 </section>
 
 <!-- LISTINGS SECTION -->
@@ -258,11 +131,11 @@
 
     <div class="listings-section-head">
         <div>
-            <span class="section-kicker">Available stays</span>
-            <h2>Explore spaces ready to compare</h2>
+            <span class="section-kicker">Featured stays</span>
+            <h2>A quick look at available spaces</h2>
         </div>
-        <a href="/all-listings" class="expand-listings-trigger">
-            View all
+        <a href="/find">
+            Browse all
             <i class="fa-solid fa-arrow-right"></i>
         </a>
     </div>
@@ -275,10 +148,10 @@
 
 {% if total > 4 and not filters_active and not nearby_active and not category_filter %}
 <div class="view-more-container">
-    <button type="button" class="view-more-btn expand-listings-trigger">
+    <a href="/find" class="view-more-btn">
         <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
         View More Listings
-    </button>
+    </a>
 </div>
 {% endif %}
 
@@ -558,106 +431,6 @@
 
 </section>
 
-<!-- FIXED CATEGORY SCRIPT -->
-<script>
-
-let activeBtn = document.querySelector(".cat.active");
-
-async function filterCategory(btn, name) {
-
-    const container = document.getElementById("listing-container");
-    container.classList.remove("expanded-listings");
-
-    if (activeBtn) activeBtn.classList.remove("active");
-    btn.classList.add("active");
-    activeBtn = btn;
-
-    container.innerHTML = `<div style="padding:30px;text-align:center;">Loading...</div>`;
-
-    const params = new URLSearchParams(window.location.search);
-
-    if (name === "trending") {
-        params.delete("category");
-    } else {
-        params.set("category", name);
-    }
-
-    const query = params.toString();
-    const url = query ? `/?${query}` : "/";
-
-    const res = await fetch(url, {
-        headers: {
-            "X-Requested-With": "XMLHttpRequest"
-        }
-    });
-    const html = await res.text();
-
-    container.innerHTML = html;
-
-    const totalCount = res.headers.get("X-Total-Count");
-    const countBox = document.querySelector(".filter-result-count");
-
-    if (totalCount && countBox) {
-        countBox.innerHTML = `
-            <strong>${totalCount}</strong>
-            <span>${Number(totalCount) === 1 ? "match" : "matches"}</span>
-        `;
-    }
-
-    window.history.replaceState({}, "", `${url}#listings-section`);
-
-    document.getElementById("listings-section")
-        .scrollIntoView({ behavior: "smooth" });
-
-}
-
-async function expandListings(event) {
-    event.preventDefault();
-
-    const trigger = event.currentTarget;
-    const container = document.getElementById("listing-container");
-    const viewMoreContainer = document.querySelector(".view-more-container");
-
-    trigger.setAttribute("aria-busy", "true");
-    trigger.classList.add("loading");
-    container.classList.add("loading-listings");
-
-    const originalHtml = trigger.innerHTML;
-    trigger.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Loading listings`;
-
-    try {
-        const res = await fetch("/all-listings", {
-            headers: {
-                "X-Requested-With": "XMLHttpRequest"
-            }
-        });
-
-        const html = await res.text();
-        container.innerHTML = html;
-        container.classList.add("expanded-listings");
-
-        if (viewMoreContainer) {
-            viewMoreContainer.remove();
-        }
-
-        document.getElementById("listings-section")
-            .scrollIntoView({ behavior: "smooth" });
-    } catch (error) {
-        trigger.innerHTML = originalHtml;
-        trigger.classList.remove("loading");
-        trigger.removeAttribute("aria-busy");
-    } finally {
-        container.classList.remove("loading-listings");
-    }
-}
-
-document.querySelectorAll(".expand-listings-trigger").forEach((trigger) => {
-    trigger.addEventListener("click", expandListings);
-});
-
-</script>
-
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
 
@@ -779,100 +552,43 @@ setInterval(swapHeroSubtitle, 3000);
 </script>
 
 <script>
+const homeNearbyBtn = document.getElementById("home-nearby-btn");
+const homeNearbyStatus = document.getElementById("home-nearby-status");
+const homeSearchInput = document.getElementById("home-search-input");
 
-const nearbyBtn = document.getElementById("nearby-btn");
-const nearbyStatus = document.getElementById("nearby-status");
-const nearbyForm = document.getElementById("nearby-form");
-const nearbyLat = document.getElementById("nearby-lat");
-const nearbyLng = document.getElementById("nearby-lng");
-
-function setHiddenField(form, name, value) {
-    if (!form) return;
-
-    let input = form.querySelector(`input[name="${name}"]`);
-
-    if (!input) {
-        input = document.createElement("input");
-        input.type = "hidden";
-        input.name = name;
-        form.appendChild(input);
-    }
-
-    input.value = value;
-}
-
-if (nearbyBtn) {
-    nearbyBtn.addEventListener("click", () => {
+if (homeNearbyBtn) {
+    homeNearbyBtn.addEventListener("click", () => {
         if (!navigator.geolocation) {
-            nearbyStatus.textContent = "Location search is not supported by this browser.";
-            nearbyStatus.classList.add("error");
+            homeNearbyStatus.textContent = "Location search is not supported by this browser.";
+            homeNearbyStatus.classList.add("error");
             return;
         }
 
-        nearbyBtn.disabled = true;
-        nearbyStatus.textContent = "Getting your current location...";
-        nearbyStatus.classList.remove("error");
+        homeNearbyBtn.disabled = true;
+        homeNearbyStatus.textContent = "Getting your current location...";
+        homeNearbyStatus.classList.remove("error");
 
         navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                nearbyLat.value = position.coords.latitude;
-                nearbyLng.value = position.coords.longitude;
-                const params = new URLSearchParams(new FormData(nearbyForm));
-                const url = `/?${params.toString()}`;
-                const container = document.getElementById("listing-container");
-                const countBox = document.querySelector(".filter-result-count");
-                const listingsSection = document.getElementById("listings-section");
-                const filterForm = document.querySelector(".listing-filters");
-                const radius = document.getElementById("nearby-radius").value;
+            (position) => {
+                const params = new URLSearchParams({
+                    nearby: "1",
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                    radius: "5"
+                });
 
-                try {
-                    nearbyStatus.textContent = "Finding nearby listings...";
-                    container.classList.remove("expanded-listings");
-                    container.classList.add("loading-listings");
+                const search = homeSearchInput.value.trim();
 
-                    const res = await fetch(url, {
-                        headers: {
-                            "X-Requested-With": "XMLHttpRequest"
-                        }
-                    });
-
-                    if (!res.ok) {
-                        throw new Error("Nearby search failed");
-                    }
-
-                    container.innerHTML = await res.text();
-
-                    const totalCount = res.headers.get("X-Total-Count");
-
-                    if (totalCount && countBox) {
-                        countBox.innerHTML = `
-                            <strong>${totalCount}</strong>
-                            <span>${Number(totalCount) === 1 ? "match" : "matches"}</span>
-                        `;
-                    }
-
-                    setHiddenField(filterForm, "nearby", "1");
-                    setHiddenField(filterForm, "lat", nearbyLat.value);
-                    setHiddenField(filterForm, "lng", nearbyLng.value);
-                    setHiddenField(filterForm, "radius", radius);
-
-                    nearbyStatus.textContent = `Showing PGs within ${radius} km, nearest first.`;
-                    nearbyStatus.classList.add("active");
-                    window.history.replaceState({}, "", `${url}#listings-section`);
-                    listingsSection.scrollIntoView({ behavior: "smooth", block: "start" });
-                } catch (error) {
-                    window.location.href = `${url}#listings-section`;
-                } finally {
-                    nearbyBtn.disabled = false;
-                    if (container) {
-                        container.classList.remove("loading-listings");
-                    }
+                if (search) {
+                    params.set("search", search);
                 }
+
+                window.location.href = `/find?${params.toString()}#listings-section`;
             },
             () => {
-                nearbyBtn.disabled = false;
-                nearbyStatus.textContent = "Location permission was blocked. Please allow it and try again.";
-                nearbyStatus.classList.add("error");
+                homeNearbyBtn.disabled = false;
+                homeNearbyStatus.textContent = "Location permission was blocked. Please allow it and try again.";
+                homeNearbyStatus.classList.add("error");
             },
             {
                 enableHighAccuracy: true,
@@ -882,7 +598,6 @@ if (nearbyBtn) {
         );
     });
 }
-
 </script>
 
 {% endblock %}

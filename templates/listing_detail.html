@@ -53,7 +53,7 @@
 
             <div class="detail-price">
                 Rs {{ listing["price"] }}
-                <span>/ month</span>
+                <span>/ {{ listing.get("rent_period")|rent_period_label }}</span>
             </div>
 
             <div class="detail-location">

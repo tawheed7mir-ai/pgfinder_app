@@ -82,7 +82,7 @@
 
                 <div class="owner-listing-price">
                     Rs {{ item.listing["price"] }}
-                    <span>/ month</span>
+                    <span>/ {{ item.listing.get("rent_period")|rent_period_label }}</span>
                 </div>
 
                 <p class="owner-listing-location">

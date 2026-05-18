@@ -27,12 +27,22 @@
                 </label>
 
                 <label>
-                    <span>Monthly price</span>
+                    <span>Rent amount</span>
                     <input
-                    type="text"
+                    type="number"
                     name="price"
                     value="{{ listing.price }}"
+                    min="1"
                     required>
+                </label>
+
+                <label>
+                    <span>Billing period</span>
+                    <select name="rent_period" required>
+                        <option value="month" {% if (listing.get("rent_period") or "month") == "month" %}selected{% endif %}>Per month</option>
+                        <option value="week" {% if listing.get("rent_period") == "week" %}selected{% endif %}>Per week</option>
+                        <option value="day" {% if listing.get("rent_period") == "day" %}selected{% endif %}>Per day</option>
+                    </select>
                 </label>
 
                 <label>

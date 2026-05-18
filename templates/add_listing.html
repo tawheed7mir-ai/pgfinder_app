@@ -49,11 +49,20 @@
                 </label>
 
                 <label class="add-field">
-                    <span>Monthly rent</span>
+                    <span>Rent amount</span>
                     <div class="price-input">
                         <span>Rs</span>
                         <input type="number" name="price" placeholder="8500" min="1" required>
                     </div>
+                </label>
+
+                <label class="add-field">
+                    <span>Billing period</span>
+                    <select name="rent_period" class="rent-period-select" required>
+                        <option value="month" selected>Per month</option>
+                        <option value="week">Per week</option>
+                        <option value="day">Per day</option>
+                    </select>
                 </label>
             </div>
 

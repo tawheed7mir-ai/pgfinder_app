@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS listings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT,
     price INTEGER,
+    rent_period TEXT DEFAULT 'month',
     location TEXT,
     description TEXT,
     image TEXT,

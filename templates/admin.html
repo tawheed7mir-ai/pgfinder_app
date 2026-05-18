@@ -393,7 +393,7 @@
                         <div class="listing-cell">
                             <strong>{{ listing.title }}</strong>
                             <span>{{ listing.owner_name or 'Unknown owner' }}</span>
-                            <div class="listing-meta">Rs {{ listing.price }} - {{ listing.location }}</div>
+                            <div class="listing-meta">Rs {{ listing.price }}/{{ listing.get("rent_period")|rent_period_label }} - {{ listing.location }}</div>
                         </div>
 
                         <div class="admin-actions">

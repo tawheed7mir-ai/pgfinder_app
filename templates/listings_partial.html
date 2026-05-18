@@ -60,7 +60,8 @@
         {% endif %}
 
         <div class="price">
-            ₹{{ item.listing["price"] }}
+            Rs {{ item.listing["price"] }}
+            <span>/ {{ item.listing.get("rent_period")|rent_period_label }}</span>
         </div>
 
         <div class="location" title="{{ item.listing['location'] }}">
