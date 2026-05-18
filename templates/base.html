@@ -58,6 +58,7 @@
     <form class="search-box" action="/" method="GET">
 
         <input
+        id="nav-search-input"
         type="text"
         name="search"
         placeholder="Search locations...">
@@ -346,6 +347,37 @@ function moveSlide(button, direction){
 
 }
 
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const searchInput = document.getElementById("nav-search-input");
+
+    if (!searchInput) return;
+
+    const searchPrompts = [
+        "Search locations...",
+        "Search PG near college...",
+        "Search rooms near office...",
+        "Search Ahmedabad, Delhi, Mumbai...",
+        "Search by area or landmark..."
+    ];
+
+    let promptIndex = 0;
+
+    setInterval(() => {
+        if (document.activeElement === searchInput || searchInput.value.trim()) {
+            return;
+        }
+
+        promptIndex = (promptIndex + 1) % searchPrompts.length;
+        searchInput.classList.add("placeholder-swapping");
+
+        setTimeout(() => {
+            searchInput.placeholder = searchPrompts[promptIndex];
+            searchInput.classList.remove("placeholder-swapping");
+        }, 180);
+    }, 2200);
+});
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
