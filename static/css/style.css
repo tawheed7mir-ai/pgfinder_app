@@ -3135,24 +3135,36 @@ REQUESTS PAGE
 }
 
 .notification-toast{
+    position:relative;
+    overflow:hidden;
     display:grid;
     grid-template-columns:48px 1fr 34px;
     gap:12px;
     align-items:center;
-    padding:14px;
-    border:1px solid rgba(255,255,255,0.72);
-    border-radius:18px;
-    background:rgba(255,255,255,0.94);
+    padding:14px 14px 17px;
+    border:1px solid rgba(226,232,240,0.86);
+    border-radius:20px;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,250,252,0.94)),
+        #fff;
     color:#111827;
     text-decoration:none;
-    box-shadow:0 24px 70px rgba(15,23,42,0.18);
-    backdrop-filter:blur(18px);
+    box-shadow:0 28px 80px rgba(15,23,42,0.20);
+    backdrop-filter:blur(22px);
     pointer-events:auto;
-    animation:toastIn 0.32s ease both;
+    animation:toastIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.notification-toast::before{
+    content:"";
+    position:absolute;
+    inset:0 auto 0 0;
+    width:5px;
+    background:linear-gradient(180deg,#ff385c,#18a999);
 }
 
 .notification-toast.leaving{
-    animation:toastOut 0.28s ease both;
+    animation:toastOut 0.18s ease both;
 }
 
 .notification-icon{
@@ -3165,14 +3177,24 @@ REQUESTS PAGE
     background:linear-gradient(135deg,#ff385c,#18a999);
     color:white;
     font-size:18px;
+    box-shadow:0 14px 34px rgba(255,56,92,0.24);
 }
 
-.notification-toast.request_rejected .notification-icon{
+.notification-toast.request_accepted .notification-icon,
+.notification-toast.success .notification-icon{
+    background:linear-gradient(135deg,#10b981,#18a999);
+    box-shadow:0 14px 34px rgba(16,185,129,0.22);
+}
+
+.notification-toast.request_rejected .notification-icon,
+.notification-toast.warning .notification-icon{
     background:linear-gradient(135deg,#ef4444,#f97316);
+    box-shadow:0 14px 34px rgba(239,68,68,0.22);
 }
 
 .notification-copy strong,
-.notification-copy span{
+.notification-copy span,
+.notification-copy small{
     display:block;
 }
 
@@ -3187,6 +3209,17 @@ REQUESTS PAGE
     line-height:1.45;
 }
 
+.notification-copy small{
+    width:max-content;
+    margin-top:8px;
+    padding:5px 8px;
+    border-radius:999px;
+    background:#f1f5f9;
+    color:#334155;
+    font-size:11px;
+    font-weight:900;
+}
+
 .notification-close{
     width:32px;
     height:32px;
@@ -3195,12 +3228,30 @@ REQUESTS PAGE
     background:#f1f5f9;
     color:#64748b;
     cursor:pointer;
+    transition:background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.notification-close:hover{
+    background:#111827;
+    color:white;
+    transform:scale(0.94);
+}
+
+.notification-progress{
+    position:absolute;
+    left:5px;
+    right:0;
+    bottom:0;
+    height:3px;
+    background:linear-gradient(90deg,#ff385c,#18a999);
+    transform-origin:left;
+    animation:notificationLife 6.2s linear both;
 }
 
 @keyframes toastIn{
     from{
         opacity:0;
-        transform:translateY(-14px) scale(0.96);
+        transform:translateY(-10px) scale(0.98);
     }
     to{
         opacity:1;
@@ -3217,6 +3268,11 @@ REQUESTS PAGE
         opacity:0;
         transform:translateY(-10px) scale(0.96);
     }
+}
+
+@keyframes notificationLife{
+    from{ transform:scaleX(1); }
+    to{ transform:scaleX(0); }
 }
 
 @media(max-width:640px){
@@ -5517,6 +5573,16 @@ REQUEST BOX
     box-shadow:0 30px 80px rgba(15,23,42,0.12);
 }
 
+.owner-request-card.accepted{
+    border-color:rgba(16,185,129,0.26);
+    background:linear-gradient(135deg, rgba(236,253,245,0.72), rgba(255,255,255,0.96));
+}
+
+.owner-request-card.rejected{
+    border-color:rgba(239,68,68,0.20);
+    background:linear-gradient(135deg, rgba(254,242,242,0.74), rgba(255,255,255,0.96));
+}
+
 .owner-request-card.request-leaving{
     opacity:0;
     transform:translateX(34px) scale(0.98);
@@ -5648,6 +5714,20 @@ REQUEST BOX
     font:inherit;
     font-weight:900;
     cursor:pointer;
+    transition:transform 0.18s ease, filter 0.18s ease, opacity 0.18s ease;
+}
+
+.owner-request-actions .accept-btn:hover,
+.owner-request-actions .reject-btn:hover{
+    transform:translateY(-2px);
+    filter:saturate(1.08);
+}
+
+.owner-request-actions .accept-btn:disabled,
+.owner-request-actions .reject-btn:disabled{
+    cursor:wait;
+    opacity:0.72;
+    transform:none;
 }
 
 .owner-request-actions .accept-btn{
@@ -9016,22 +9096,21 @@ body{
 body.motion-ready,
 body.motion-reduced{
     opacity:1;
-    animation:pageBloom 0.08s ease both;
+    animation:none;
 }
 
 .navbar{
-    animation:navDrop 0.12s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+    animation:none;
 }
 
 .motion-reveal{
-    opacity:0.18;
-    transform:translate3d(0, 5px, 0);
-    filter:blur(1px);
-    will-change:transform, opacity, filter;
+    opacity:1;
+    transform:none;
+    filter:none;
 }
 
 .motion-reveal.is-visible{
-    animation:revealUp 0.16s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0ms) both;
+    animation:none;
 }
 
 .premium-motion-surface{

@@ -1826,6 +1826,9 @@ def accept_request(id):
     conn.commit()
     conn.close()
 
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"status": "accepted"})
+
     return redirect("/requests")
 
 
@@ -1858,6 +1861,9 @@ def reject_request(id):
 
     conn.commit()
     conn.close()
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"status": "rejected"})
 
     return "", 204
 
@@ -2185,7 +2191,7 @@ def notifications_feed():
                 "type": f"request_{new_status}",
                 "title": "Request accepted" if new_status == "accepted" else "Request rejected",
                 "message": f"Your request for {req['listing_title']} was {new_status}.",
-                "link": "/profile"
+                "link": "/my-requests"
             })
 
     session["user_seen_request_statuses"] = current_statuses

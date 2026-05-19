@@ -558,6 +558,14 @@ document.addEventListener("DOMContentLoaded", () => {
     let audioContext = null;
     let audioReady = false;
     const shownNotifications = new Set();
+    const iconMap = {
+        owner_request: "fa-solid fa-envelope-circle-check",
+        request_accepted: "fa-solid fa-circle-check",
+        request_rejected: "fa-solid fa-circle-xmark",
+        success: "fa-solid fa-circle-check",
+        warning: "fa-solid fa-triangle-exclamation",
+        info: "fa-solid fa-bell"
+    };
 
     function prepareAudio() {
         if (audioReady) return;
@@ -570,19 +578,9 @@ document.addEventListener("DOMContentLoaded", () => {
         audioReady = true;
     }
 
-    function unlockSoundAndPing() {
-        prepareAudio();
-        playNotificationSound("owner_request");
-    }
-
     ["click", "keydown", "touchstart"].forEach(eventName => {
         document.addEventListener(eventName, prepareAudio, { once: true });
     });
-
-    document.querySelectorAll("form[action^='/accept-request'], form[action^='/reject-request']")
-        .forEach(form => {
-            form.addEventListener("submit", unlockSoundAndPing);
-        });
 
     function playNotificationSound(type) {
         if (!audioContext || audioContext.state !== "running") return;
@@ -590,24 +588,36 @@ document.addEventListener("DOMContentLoaded", () => {
         const now = audioContext.currentTime;
         const gain = audioContext.createGain();
         gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(0.14, now + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.48);
+        gain.gain.exponentialRampToValueAtTime(0.10, now + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
         gain.connect(audioContext.destination);
 
-        const firstTone = audioContext.createOscillator();
-        const secondTone = audioContext.createOscillator();
+        const patterns = {
+            owner_request: [660, 880, 1180],
+            request_accepted: [620, 820, 1040],
+            success: [620, 820, 1040],
+            request_rejected: [420, 320],
+            warning: [420, 320],
+            info: [560, 760]
+        };
 
-        firstTone.type = "sine";
-        secondTone.type = "sine";
-        firstTone.frequency.setValueAtTime(type === "request_rejected" ? 360 : 660, now);
-        secondTone.frequency.setValueAtTime(type === "request_rejected" ? 300 : 880, now + 0.14);
+        const notes = patterns[type] || patterns.info;
 
-        firstTone.connect(gain);
-        secondTone.connect(gain);
-        firstTone.start(now);
-        firstTone.stop(now + 0.18);
-        secondTone.start(now + 0.16);
-        secondTone.stop(now + 0.48);
+        notes.forEach((frequency, index) => {
+            const tone = audioContext.createOscillator();
+            const noteGain = audioContext.createGain();
+            const start = now + index * 0.095;
+
+            tone.type = "sine";
+            tone.frequency.setValueAtTime(frequency, start);
+            noteGain.gain.setValueAtTime(0.0001, start);
+            noteGain.gain.exponentialRampToValueAtTime(0.26, start + 0.012);
+            noteGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.13);
+            tone.connect(noteGain);
+            noteGain.connect(gain);
+            tone.start(start);
+            tone.stop(start + 0.15);
+        });
     }
 
     function escapeHtml(value) {
@@ -616,25 +626,31 @@ document.addEventListener("DOMContentLoaded", () => {
         return div.innerHTML;
     }
 
-    function showNotification(notification) {
-        if (shownNotifications.has(notification.id)) return;
+    function showNotification(notification, options = {}) {
+        if (notification.id && shownNotifications.has(notification.id)) return;
 
-        shownNotifications.add(notification.id);
+        if (notification.id) {
+            shownNotifications.add(notification.id);
+        }
 
         const toast = document.createElement("a");
         toast.href = notification.link || "#";
         toast.className = `notification-toast ${notification.type || ""}`;
+        const icon = notification.icon || iconMap[notification.type] || iconMap.info;
+        const actionLabel = notification.action || (notification.link ? "Open" : "");
         toast.innerHTML = `
             <div class="notification-icon">
-                <i class="fa-solid fa-bell"></i>
+                <i class="${icon}"></i>
             </div>
             <div class="notification-copy">
                 <strong>${escapeHtml(notification.title)}</strong>
                 <span>${escapeHtml(notification.message)}</span>
+                ${actionLabel ? `<small>${escapeHtml(actionLabel)}</small>` : ""}
             </div>
             <button type="button" class="notification-close" aria-label="Close notification">
                 <i class="fa-solid fa-xmark"></i>
             </button>
+            <div class="notification-progress"></div>
         `;
 
         toast.querySelector(".notification-close").addEventListener("click", (event) => {
@@ -643,13 +659,21 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         stack.prepend(toast);
-        playNotificationSound(notification.type);
+        if (options.sound !== false) {
+            playNotificationSound(notification.type);
+        }
 
         setTimeout(() => {
             toast.classList.add("leaving");
             setTimeout(() => toast.remove(), 300);
-        }, 7000);
+        }, options.duration || 6200);
     }
+
+    window.PGNotify = {
+        show: showNotification,
+        sound: playNotificationSound,
+        prepareAudio
+    };
 
     async function checkNotifications() {
         try {
@@ -732,7 +756,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     revealItems.forEach((item, index) => {
         item.classList.add("motion-reveal");
-        item.style.setProperty("--reveal-delay", `${Math.min(index % 4, 3) * 12}ms`);
+        item.style.setProperty("--reveal-delay", "0ms");
     });
 
     const observer = "IntersectionObserver" in window
