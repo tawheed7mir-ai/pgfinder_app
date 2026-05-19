@@ -2,115 +2,348 @@
 
 {% block content %}
 
+{% set total_users = user_stats.total_users or 0 %}
+{% set seekers = user_stats.seekers or 0 %}
+{% set owners = user_stats.owners or 0 %}
+{% set admins = user_stats.admins or 0 %}
+{% set pending_requests = request_stats.get('pending', 0) %}
+{% set accepted_requests = request_stats.get('accepted', 0) %}
+{% set rejected_requests = request_stats.get('rejected', 0) %}
+{% set request_base = total_requests if total_requests else 1 %}
+
 <style>
 .admin-page{
     min-height:100vh;
-    padding:38px 5% 80px;
-    background:#f6f8fb;
+    padding:32px 5% 84px;
+    background:
+        radial-gradient(circle at 8% 2%, rgba(255,56,92,0.14), transparent 28%),
+        radial-gradient(circle at 88% 4%, rgba(24,169,153,0.14), transparent 30%),
+        linear-gradient(180deg, #f8fafc 0%, #eef4f7 100%);
+}
+
+.admin-shell{
+    width:min(1360px, 100%);
+    margin:0 auto;
 }
 
 .admin-hero{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
+    position:relative;
+    overflow:hidden;
+    min-height:260px;
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) minmax(290px, 420px);
     gap:24px;
-    margin-bottom:26px;
+    align-items:stretch;
+    padding:28px;
+    border:1px solid rgba(255,255,255,0.68);
+    border-radius:30px;
+    background:
+        linear-gradient(135deg, rgba(17,24,39,0.96), rgba(15,23,42,0.88)),
+        #111827;
+    color:white;
+    box-shadow:0 32px 90px rgba(15,23,42,0.22);
+}
+
+.admin-hero::before{
+    content:"";
+    position:absolute;
+    inset:-40% -18% auto auto;
+    width:460px;
+    height:460px;
+    border-radius:50%;
+    background:conic-gradient(from 180deg, rgba(255,56,92,0.42), rgba(24,169,153,0.42), rgba(255,255,255,0.18), rgba(255,56,92,0.42));
+    filter:blur(22px);
+    opacity:0.72;
+    animation:adminAura 12s linear infinite;
+}
+
+@keyframes adminAura{
+    to{ transform:rotate(360deg); }
+}
+
+.admin-hero-copy,
+.admin-hero-card{
+    position:relative;
+    z-index:2;
 }
 
 .admin-kicker{
     display:inline-flex;
-    padding:7px 12px;
+    align-items:center;
+    gap:8px;
+    min-height:34px;
+    padding:0 13px;
+    border:1px solid rgba(255,255,255,0.18);
     border-radius:999px;
-    background:#fff1f4;
-    color:#ff385c;
+    background:rgba(255,255,255,0.10);
+    color:rgba(255,255,255,0.90);
     font-size:12px;
-    font-weight:800;
+    font-weight:900;
     text-transform:uppercase;
+    letter-spacing:0;
+    backdrop-filter:blur(16px);
 }
 
 .admin-hero h1{
-    margin:12px 0 8px;
-    color:#111827;
-    font-size:42px;
-    line-height:1.1;
+    width:min(760px, 100%);
+    margin:18px 0 12px;
+    font-size:clamp(40px, 6vw, 78px);
+    line-height:0.95;
 }
 
 .admin-hero p{
-    color:#64748b;
+    width:min(640px, 100%);
+    color:rgba(255,255,255,0.76);
+    font-size:16px;
+    line-height:1.8;
 }
 
-.admin-home{
+.admin-hero-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    margin-top:24px;
+}
+
+.admin-action-link{
+    min-height:46px;
     display:inline-flex;
     align-items:center;
     gap:9px;
-    padding:12px 16px;
+    padding:0 16px;
+    border:1px solid rgba(255,255,255,0.18);
     border-radius:14px;
-    background:#111827;
+    background:rgba(255,255,255,0.10);
     color:white;
     text-decoration:none;
-    font-weight:700;
+    font-size:13px;
+    font-weight:900;
+    backdrop-filter:blur(14px);
+}
+
+.admin-action-link.primary{
+    border:0;
+    background:linear-gradient(135deg, #ff385c, #18a999);
+    box-shadow:0 18px 44px rgba(255,56,92,0.24);
+}
+
+.admin-hero-card{
+    display:grid;
+    gap:14px;
+    align-content:space-between;
+    padding:20px;
+    border:1px solid rgba(255,255,255,0.18);
+    border-radius:24px;
+    background:rgba(255,255,255,0.10);
+    backdrop-filter:blur(20px);
+}
+
+.ops-clock{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+}
+
+.ops-clock span,
+.ops-mini span,
+.admin-stat span,
+.admin-panel-kicker{
+    color:#64748b;
+    font-size:12px;
+    font-weight:900;
+    text-transform:uppercase;
+}
+
+.admin-hero-card .ops-clock span,
+.admin-hero-card .ops-mini span{
+    color:rgba(255,255,255,0.62);
+}
+
+.ops-clock strong{
+    display:block;
+    margin-top:4px;
+    color:white;
+    font-size:28px;
+}
+
+.ops-status{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:8px 10px;
+    border-radius:999px;
+    background:rgba(16,185,129,0.16);
+    color:#bbf7d0;
+    font-size:12px;
+    font-weight:900;
+}
+
+.ops-status::before{
+    content:"";
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#22c55e;
+    box-shadow:0 0 0 6px rgba(34,197,94,0.16);
+}
+
+.ops-mini-grid{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:10px;
+}
+
+.ops-mini{
+    padding:14px;
+    border-radius:18px;
+    background:rgba(255,255,255,0.11);
+}
+
+.ops-mini strong{
+    display:block;
+    margin-top:7px;
+    color:white;
+    font-size:22px;
 }
 
 .admin-stats{
     display:grid;
-    grid-template-columns:repeat(4,minmax(160px,1fr));
-    gap:18px;
-    margin-bottom:24px;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:16px;
+    margin:22px 0;
 }
 
 .admin-stat{
-    padding:22px;
-    border:1px solid #e8edf3;
-    border-radius:20px;
-    background:white;
-    box-shadow:0 18px 45px rgba(15,23,42,0.06);
+    position:relative;
+    overflow:hidden;
+    min-height:138px;
+    padding:20px;
+    border:1px solid rgba(226,232,240,0.86);
+    border-radius:24px;
+    background:rgba(255,255,255,0.90);
+    box-shadow:0 22px 64px rgba(15,23,42,0.08);
 }
 
-.admin-stat span{
-    color:#64748b;
-    font-size:13px;
-    font-weight:700;
+.admin-stat i{
+    width:42px;
+    height:42px;
+    display:grid;
+    place-items:center;
+    margin-bottom:15px;
+    border-radius:14px;
+    background:#111827;
+    color:white;
 }
 
 .admin-stat strong{
     display:block;
-    margin-top:9px;
+    margin-top:6px;
     color:#111827;
     font-size:34px;
+    line-height:1;
+}
+
+.admin-stat small{
+    display:block;
+    margin-top:9px;
+    color:#64748b;
+    font-size:12px;
+    font-weight:700;
+}
+
+.admin-control-bar{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) auto auto;
+    gap:12px;
+    align-items:center;
+    margin-bottom:18px;
+}
+
+.admin-search,
+.admin-select{
+    min-height:48px;
+    border:1px solid #dfe7f0;
+    border-radius:16px;
+    background:white;
+    box-shadow:0 14px 34px rgba(15,23,42,0.05);
+}
+
+.admin-search{
+    display:grid;
+    grid-template-columns:42px minmax(0, 1fr);
+    align-items:center;
+    padding:0 14px;
+}
+
+.admin-search i{
+    color:#ff385c;
+}
+
+.admin-search input,
+.admin-select{
+    border:0;
+    outline:0;
+    background:transparent;
+    color:#111827;
+    font:inherit;
+    font-weight:800;
+}
+
+.admin-select{
+    padding:0 14px;
 }
 
 .admin-grid{
     display:grid;
-    grid-template-columns:1.35fr 0.9fr;
-    gap:24px;
+    grid-template-columns:minmax(0, 1.35fr) minmax(340px, 0.85fr);
+    gap:22px;
 }
 
 .admin-panel{
-    border:1px solid #e8edf3;
-    border-radius:22px;
-    background:white;
-    box-shadow:0 18px 45px rgba(15,23,42,0.06);
     overflow:hidden;
+    border:1px solid rgba(226,232,240,0.9);
+    border-radius:26px;
+    background:rgba(255,255,255,0.92);
+    box-shadow:0 24px 72px rgba(15,23,42,0.09);
+    backdrop-filter:blur(18px);
 }
 
 .panel-head{
     display:flex;
     justify-content:space-between;
-    align-items:center;
+    align-items:flex-start;
     gap:16px;
-    padding:20px 22px;
+    padding:22px;
     border-bottom:1px solid #edf1f6;
 }
 
 .panel-head h2{
-    margin:0;
-    font-size:20px;
+    margin:7px 0 5px;
+    color:#111827;
+    font-size:22px;
 }
 
 .panel-head p{
-    margin:4px 0 0;
+    margin:0;
     color:#64748b;
     font-size:13px;
+    line-height:1.6;
+}
+
+.panel-count{
+    min-width:44px;
+    height:44px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    background:#111827;
+    color:white;
+    font-weight:900;
+}
+
+.admin-table-wrap{
+    overflow:auto;
 }
 
 .admin-table{
@@ -128,8 +361,34 @@
 
 .admin-table th{
     color:#64748b;
-    font-size:12px;
+    font-size:11px;
+    font-weight:900;
     text-transform:uppercase;
+}
+
+.admin-table tr{
+    transition:background 0.2s ease;
+}
+
+.admin-table tbody tr:hover{
+    background:#f8fafc;
+}
+
+.user-cell{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.user-avatar{
+    width:42px;
+    height:42px;
+    display:grid;
+    place-items:center;
+    border-radius:14px;
+    background:linear-gradient(135deg, #ff385c, #18a999);
+    color:white;
+    font-weight:900;
 }
 
 .user-cell strong,
@@ -139,63 +398,163 @@
 }
 
 .user-cell span,
-.listing-cell span{
+.listing-cell span,
+.activity-chip{
     color:#64748b;
     font-size:12px;
 }
 
 .role-badge{
     display:inline-flex;
-    padding:6px 10px;
+    align-items:center;
+    gap:7px;
+    padding:7px 10px;
     border-radius:999px;
     background:#eef2ff;
     color:#4338ca;
     font-size:12px;
-    font-weight:800;
+    font-weight:900;
+    text-transform:capitalize;
 }
 
-.admin-actions{
+.role-badge.owner{
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.role-badge.admin{
+    background:#fff1f2;
+    color:#be123c;
+}
+
+.admin-actions,
+.admin-actions form{
     display:flex;
     gap:8px;
     flex-wrap:wrap;
+    align-items:center;
 }
 
 .admin-actions select{
     min-height:36px;
     border:1px solid #dbe3ee;
-    border-radius:10px;
+    border-radius:11px;
     padding:0 10px;
+    background:white;
     font-family:inherit;
+    font-weight:800;
 }
 
 .mini-btn{
     min-height:36px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
     padding:0 12px;
     border:0;
-    border-radius:10px;
+    border-radius:11px;
     background:#111827;
     color:white;
     font-family:inherit;
     font-size:12px;
-    font-weight:800;
+    font-weight:900;
     cursor:pointer;
     text-decoration:none;
-    display:inline-flex;
-    align-items:center;
+}
+
+.mini-btn.ghost{
+    border:1px solid #dfe7f0;
+    background:white;
+    color:#111827;
 }
 
 .mini-btn.danger{
     background:#ef4444;
 }
 
+.admin-side{
+    display:grid;
+    gap:22px;
+    align-content:start;
+}
+
+.request-health{
+    padding:22px;
+}
+
+.health-row{
+    display:grid;
+    grid-template-columns:92px minmax(0, 1fr) 44px;
+    gap:12px;
+    align-items:center;
+    margin-top:16px;
+}
+
+.health-row span,
+.health-row strong{
+    color:#334155;
+    font-size:13px;
+    font-weight:900;
+}
+
+.health-track{
+    height:11px;
+    overflow:hidden;
+    border-radius:999px;
+    background:#eef2f7;
+}
+
+.health-fill{
+    height:100%;
+    border-radius:inherit;
+    background:linear-gradient(90deg, #ff385c, #18a999);
+}
+
+.health-fill.accepted{
+    background:#18a999;
+}
+
+.health-fill.rejected{
+    background:#ef4444;
+}
+
+.insight-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:12px;
+    padding:0 22px 22px;
+}
+
+.insight-card{
+    padding:14px;
+    border:1px solid #edf1f6;
+    border-radius:18px;
+    background:#f8fafc;
+}
+
+.insight-card span{
+    color:#64748b;
+    font-size:11px;
+    font-weight:900;
+    text-transform:uppercase;
+}
+
+.insight-card strong{
+    display:block;
+    margin-top:6px;
+    color:#111827;
+    font-size:20px;
+}
+
 .listing-list{
-    display:flex;
-    flex-direction:column;
+    display:grid;
+    gap:0;
 }
 
 .listing-row{
     display:grid;
-    grid-template-columns:72px 1fr auto;
+    grid-template-columns:82px minmax(0, 1fr);
     gap:14px;
     align-items:center;
     padding:16px 18px;
@@ -203,46 +562,67 @@
 }
 
 .listing-row img{
-    width:72px;
-    height:58px;
-    border-radius:12px;
+    width:82px;
+    height:68px;
+    border-radius:16px;
     object-fit:cover;
     background:#e5e7eb;
 }
 
 .listing-meta{
+    margin-top:5px;
     color:#64748b;
     font-size:12px;
+    line-height:1.45;
 }
 
-.request-pills{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    padding:18px 22px 22px;
+.listing-row .admin-actions{
+    grid-column:1 / -1;
 }
 
-.request-pills span{
-    padding:10px 12px;
-    border-radius:999px;
-    background:#f8fafc;
-    color:#334155;
-    font-size:13px;
+.admin-empty{
+    padding:28px;
+    color:#64748b;
+    text-align:center;
     font-weight:800;
 }
 
-@media(max-width:1000px){
-    .admin-stats,
+.admin-hidden{
+    display:none !important;
+}
+
+@media(max-width:1100px){
+    .admin-hero,
     .admin-grid{
         grid-template-columns:1fr;
     }
 
-    .admin-hero{
-        flex-direction:column;
+    .admin-stats{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
     }
 }
 
 @media(max-width:720px){
+    .admin-page{
+        padding:16px 12px 56px;
+    }
+
+    .admin-hero{
+        padding:20px;
+        border-radius:24px;
+    }
+
+    .admin-hero h1{
+        font-size:38px;
+    }
+
+    .admin-control-bar,
+    .admin-stats,
+    .ops-mini-grid,
+    .insight-grid{
+        grid-template-columns:1fr;
+    }
+
     .admin-table,
     .admin-table tbody,
     .admin-table tr,
@@ -255,162 +635,353 @@
         display:none;
     }
 
-    .listing-row{
-        grid-template-columns:64px 1fr;
+    .admin-table tr{
+        padding:14px;
+        border-bottom:1px solid #edf1f6;
     }
 
-    .listing-row .admin-actions{
-        grid-column:1/-1;
+    .admin-table td{
+        padding:8px 0;
+        border:0;
     }
 }
 </style>
 
 <main class="admin-page">
+    <div class="admin-shell">
 
-    <section class="admin-hero">
-        <div>
-            <span class="admin-kicker">Admin command center</span>
-            <h1>Platform Dashboard</h1>
-            <p>Monitor users, listings, requests, and remove unsafe accounts or content.</p>
-        </div>
+        <section class="admin-hero">
+            <div class="admin-hero-copy">
+                <span class="admin-kicker">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Admin command center
+                </span>
+                <h1>Control the platform with clarity.</h1>
+                <p>Monitor account growth, moderate new listings, review request health, and keep PG Finder clean from one polished operations dashboard.</p>
 
-        <a href="/" class="admin-home">
-            <i class="fa-solid fa-arrow-left"></i>
-            Back Home
-        </a>
-    </section>
-
-    <section class="admin-stats">
-        <div class="admin-stat">
-            <span>Active Accounts</span>
-            <strong>{{ user_stats.total_users or 0 }}</strong>
-        </div>
-        <div class="admin-stat">
-            <span>Owners</span>
-            <strong>{{ user_stats.owners or 0 }}</strong>
-        </div>
-        <div class="admin-stat">
-            <span>Listings</span>
-            <strong>{{ total_listings or 0 }}</strong>
-        </div>
-        <div class="admin-stat">
-            <span>Total Requests</span>
-            <strong>{{ total_requests or 0 }}</strong>
-        </div>
-    </section>
-
-    <section class="admin-grid">
-
-        <div class="admin-panel">
-            <div class="panel-head">
-                <div>
-                    <h2>User Control</h2>
-                    <p>Delete accounts or change access level.</p>
+                <div class="admin-hero-actions">
+                    <a href="/add" class="admin-action-link primary">
+                        <i class="fa-solid fa-plus"></i>
+                        Add listing
+                    </a>
+                    <a href="/find" class="admin-action-link">
+                        <i class="fa-solid fa-magnifying-glass-location"></i>
+                        Inspect marketplace
+                    </a>
+                    <a href="/" class="admin-action-link">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        Back home
+                    </a>
                 </div>
             </div>
 
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>User</th>
-                        <th>Role</th>
-                        <th>Activity</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in users %}
-                    <tr>
-                        <td class="user-cell">
-                            <strong>{{ u.name }}</strong>
-                            <span>{{ u.email }}{% if u.phone %} - {{ u.phone }}{% endif %}</span>
-                        </td>
-                        <td>
-                            <span class="role-badge">{{ u.role }}</span>
-                        </td>
-                        <td>
-                            {{ u.listing_count }} listings - {{ u.request_count }} requests
-                        </td>
-                        <td>
-                            <div class="admin-actions">
-                                <form method="POST" action="/admin/user/{{ u.id }}/role">
-                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                                    <select name="role">
-                                        <option value="user" {% if u.role == 'user' %}selected{% endif %}>User</option>
-                                        <option value="owner" {% if u.role == 'owner' %}selected{% endif %}>Owner</option>
-                                        <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
-                                    </select>
-                                    <button class="mini-btn" type="submit">Save</button>
-                                </form>
-
-                                {% if u.id != session.get('user_id') %}
-                                <form method="POST" action="/admin/delete-user/{{ u.id }}" onsubmit="return confirm('Delete this user and all related data?')">
-                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                                    <button class="mini-btn danger" type="submit">Delete</button>
-                                </form>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div>
-            <div class="admin-panel" style="margin-bottom:24px;">
-                <div class="panel-head">
+            <aside class="admin-hero-card">
+                <div class="ops-clock">
                     <div>
-                        <h2>Request Health</h2>
-                        <p>Current request status breakdown.</p>
+                        <span>Live ops time</span>
+                        <strong id="admin-live-time">--:--</strong>
+                    </div>
+                    <div class="ops-status">Online</div>
+                </div>
+
+                <div class="ops-mini-grid">
+                    <div class="ops-mini">
+                        <span>Admins</span>
+                        <strong>{{ admins }}</strong>
+                    </div>
+                    <div class="ops-mini">
+                        <span>Owners</span>
+                        <strong>{{ owners }}</strong>
+                    </div>
+                    <div class="ops-mini">
+                        <span>Seekers</span>
+                        <strong>{{ seekers }}</strong>
                     </div>
                 </div>
+            </aside>
+        </section>
 
-                <div class="request-pills">
-                    <span>Pending: {{ request_stats.get('pending', 0) }}</span>
-                    <span>Accepted: {{ request_stats.get('accepted', 0) }}</span>
-                    <span>Rejected: {{ request_stats.get('rejected', 0) }}</span>
-                </div>
+        <section class="admin-stats">
+            <div class="admin-stat">
+                <i class="fa-solid fa-users"></i>
+                <span>Active Accounts</span>
+                <strong>{{ total_users }}</strong>
+                <small>{{ admins }} admin, {{ owners }} owner, {{ seekers }} seeker</small>
             </div>
+            <div class="admin-stat">
+                <i class="fa-solid fa-building-user"></i>
+                <span>Owner Network</span>
+                <strong>{{ owners }}</strong>
+                <small>Accounts allowed to publish listings</small>
+            </div>
+            <div class="admin-stat">
+                <i class="fa-solid fa-house-chimney-window"></i>
+                <span>Marketplace Supply</span>
+                <strong>{{ total_listings or 0 }}</strong>
+                <small>Live listings available to seekers</small>
+            </div>
+            <div class="admin-stat">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Total Requests</span>
+                <strong>{{ total_requests or 0 }}</strong>
+                <small>{{ pending_requests }} still pending moderation follow-up</small>
+            </div>
+        </section>
 
+        <section class="admin-control-bar">
+            <label class="admin-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="search" id="admin-user-search" placeholder="Search users by name, email, phone, or role...">
+            </label>
+
+            <select class="admin-select" id="admin-role-filter" aria-label="Filter users by role">
+                <option value="all">All roles</option>
+                <option value="admin">Admins</option>
+                <option value="owner">Owners</option>
+                <option value="user">Seekers</option>
+            </select>
+
+            <select class="admin-select" id="admin-listing-filter" aria-label="Filter listings">
+                <option value="all">All listings</option>
+                <option value="priced">With price</option>
+                <option value="owner">With owner</option>
+            </select>
+        </section>
+
+        <section class="admin-grid">
             <div class="admin-panel">
                 <div class="panel-head">
                     <div>
-                        <h2>Recent Listings</h2>
-                        <p>Quickly moderate latest rooms.</p>
+                        <span class="admin-panel-kicker">Access control</span>
+                        <h2>User command table</h2>
+                        <p>Change roles, check activity, and remove unsafe accounts with fewer clicks.</p>
                     </div>
+                    <div class="panel-count" id="admin-visible-users">{{ users|length }}</div>
                 </div>
 
-                <div class="listing-list">
-                    {% for listing in listings %}
-                    <div class="listing-row">
-                        {% if listing.image %}
-                        <img src="{{ image_src(listing.image) }}" alt="" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
-                        {% else %}
-                        <img src="https://via.placeholder.com/160x120" alt="">
-                        {% endif %}
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th>Activity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr class="admin-user-row" data-role="{{ u.role }}" data-search="{{ (u.name ~ ' ' ~ u.email ~ ' ' ~ (u.phone or '') ~ ' ' ~ u.role)|lower }}">
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="user-avatar">{{ (u.name or 'U')[0]|upper }}</div>
+                                        <div>
+                                            <strong>{{ u.name }}</strong>
+                                            <span>{{ u.email }}{% if u.phone %} - {{ u.phone }}{% endif %}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="role-badge {{ u.role }}">
+                                        <i class="fa-solid fa-circle"></i>
+                                        {{ u.role }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="activity-chip">{{ u.listing_count }} listings</span><br>
+                                    <span class="activity-chip">{{ u.request_count }} requests</span>
+                                </td>
+                                <td>
+                                    <div class="admin-actions">
+                                        <form method="POST" action="/admin/user/{{ u.id }}/role">
+                                            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                            <select name="role">
+                                                <option value="user" {% if u.role == 'user' %}selected{% endif %}>User</option>
+                                                <option value="owner" {% if u.role == 'owner' %}selected{% endif %}>Owner</option>
+                                                <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
+                                            </select>
+                                            <button class="mini-btn" type="submit">
+                                                <i class="fa-solid fa-check"></i>
+                                                Save
+                                            </button>
+                                        </form>
 
-                        <div class="listing-cell">
-                            <strong>{{ listing.title }}</strong>
-                            <span>{{ listing.owner_name or 'Unknown owner' }}</span>
-                            <div class="listing-meta">Rs {{ listing.price }}/{{ listing.get("rent_period")|rent_period_label }} - {{ listing.location }}</div>
-                        </div>
-
-                        <div class="admin-actions">
-                            <a class="mini-btn" href="/listing/{{ listing.id }}">View</a>
-                            <form method="POST" action="/delete/{{ listing.id }}" onsubmit="return confirm('Delete this listing?')">
-                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                                <button class="mini-btn danger" type="submit">Delete</button>
-                            </form>
-                        </div>
-                    </div>
-                    {% endfor %}
+                                        {% if u.id != session.get('user_id') %}
+                                        <form method="POST" action="/admin/delete-user/{{ u.id }}" onsubmit="return confirm('Delete this user and all related data?')">
+                                            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                            <button class="mini-btn danger" type="submit">
+                                                <i class="fa-solid fa-trash"></i>
+                                                Delete
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
+                <div class="admin-empty admin-hidden" id="admin-user-empty">No users match this filter.</div>
             </div>
-        </div>
 
-    </section>
+            <aside class="admin-side">
+                <div class="admin-panel">
+                    <div class="panel-head">
+                        <div>
+                            <span class="admin-panel-kicker">Request health</span>
+                            <h2>Status distribution</h2>
+                            <p>Fast read on request flow quality.</p>
+                        </div>
+                    </div>
 
+                    <div class="request-health">
+                        <div class="health-row">
+                            <span>Pending</span>
+                            <div class="health-track">
+                                <div class="health-fill" style="width:{{ (pending_requests / request_base * 100)|round(0) }}%"></div>
+                            </div>
+                            <strong>{{ pending_requests }}</strong>
+                        </div>
+                        <div class="health-row">
+                            <span>Accepted</span>
+                            <div class="health-track">
+                                <div class="health-fill accepted" style="width:{{ (accepted_requests / request_base * 100)|round(0) }}%"></div>
+                            </div>
+                            <strong>{{ accepted_requests }}</strong>
+                        </div>
+                        <div class="health-row">
+                            <span>Rejected</span>
+                            <div class="health-track">
+                                <div class="health-fill rejected" style="width:{{ (rejected_requests / request_base * 100)|round(0) }}%"></div>
+                            </div>
+                            <strong>{{ rejected_requests }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="insight-grid">
+                        <div class="insight-card">
+                            <span>Acceptance ratio</span>
+                            <strong>{{ (accepted_requests / request_base * 100)|round(0) }}%</strong>
+                        </div>
+                        <div class="insight-card">
+                            <span>Pending load</span>
+                            <strong>{{ (pending_requests / request_base * 100)|round(0) }}%</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-panel">
+                    <div class="panel-head">
+                        <div>
+                            <span class="admin-panel-kicker">Moderation queue</span>
+                            <h2>Recent listings</h2>
+                            <p>Review latest rooms and remove bad content quickly.</p>
+                        </div>
+                        <div class="panel-count" id="admin-visible-listings">{{ listings|length }}</div>
+                    </div>
+
+                    <div class="listing-list">
+                        {% for listing in listings %}
+                        <div class="listing-row admin-listing-row" data-priced="{% if listing.price %}1{% else %}0{% endif %}" data-owner="{% if listing.owner_name %}1{% else %}0{% endif %}">
+                            {% if listing.image %}
+                            <img src="{{ image_src(listing.image) }}" alt="" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}';">
+                            {% else %}
+                            <img src="{{ url_for('static', filename='images/aesthetic-room-decor.jpg') }}" alt="">
+                            {% endif %}
+
+                            <div class="listing-cell">
+                                <strong>{{ listing.title }}</strong>
+                                <span>{{ listing.owner_name or 'Unknown owner' }}{% if listing.owner_email %} - {{ listing.owner_email }}{% endif %}</span>
+                                <div class="listing-meta">Rs {{ listing.price }}/{{ listing.get("rent_period")|rent_period_label }} - {{ listing.location }}</div>
+                            </div>
+
+                            <div class="admin-actions">
+                                <a class="mini-btn ghost" href="/listing/{{ listing.id }}">
+                                    <i class="fa-solid fa-eye"></i>
+                                    View
+                                </a>
+                                <a class="mini-btn ghost" href="/edit/{{ listing.id }}">
+                                    <i class="fa-solid fa-pen"></i>
+                                    Edit
+                                </a>
+                                <form method="POST" action="/delete/{{ listing.id }}" onsubmit="return confirm('Delete this listing?')">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                    <button class="mini-btn danger" type="submit">
+                                        <i class="fa-solid fa-trash"></i>
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="admin-empty admin-hidden" id="admin-listing-empty">No listings match this filter.</div>
+                </div>
+            </aside>
+        </section>
+    </div>
 </main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const timeTarget = document.getElementById("admin-live-time");
+    const userSearch = document.getElementById("admin-user-search");
+    const roleFilter = document.getElementById("admin-role-filter");
+    const listingFilter = document.getElementById("admin-listing-filter");
+    const userRows = [...document.querySelectorAll(".admin-user-row")];
+    const listingRows = [...document.querySelectorAll(".admin-listing-row")];
+    const userCount = document.getElementById("admin-visible-users");
+    const listingCount = document.getElementById("admin-visible-listings");
+    const userEmpty = document.getElementById("admin-user-empty");
+    const listingEmpty = document.getElementById("admin-listing-empty");
+
+    function updateTime() {
+        if (!timeTarget) return;
+        timeTarget.textContent = new Intl.DateTimeFormat("en-IN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true
+        }).format(new Date());
+    }
+
+    function filterUsers() {
+        const query = (userSearch?.value || "").trim().toLowerCase();
+        const role = roleFilter?.value || "all";
+        let visible = 0;
+
+        userRows.forEach((row) => {
+            const roleMatch = role === "all" || row.dataset.role === role;
+            const searchMatch = !query || row.dataset.search.includes(query);
+            const show = roleMatch && searchMatch;
+            row.classList.toggle("admin-hidden", !show);
+            if (show) visible += 1;
+        });
+
+        if (userCount) userCount.textContent = visible;
+        if (userEmpty) userEmpty.classList.toggle("admin-hidden", visible !== 0);
+    }
+
+    function filterListings() {
+        const filter = listingFilter?.value || "all";
+        let visible = 0;
+
+        listingRows.forEach((row) => {
+            const show = filter === "all" || row.dataset[filter] === "1";
+            row.classList.toggle("admin-hidden", !show);
+            if (show) visible += 1;
+        });
+
+        if (listingCount) listingCount.textContent = visible;
+        if (listingEmpty) listingEmpty.classList.toggle("admin-hidden", visible !== 0);
+    }
+
+    updateTime();
+    setInterval(updateTime, 30000);
+    userSearch?.addEventListener("input", filterUsers);
+    roleFilter?.addEventListener("change", filterUsers);
+    listingFilter?.addEventListener("change", filterListings);
+});
+</script>
 
 {% endblock %}

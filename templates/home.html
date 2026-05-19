@@ -87,7 +87,7 @@
         <p>Use the search box for an area, Nearby for stays around you, or Advanced filters for budget, room type, sharing, and amenities.</p>
     </div>
 
-    <form class="home-search-card" action="/find" method="GET">
+    <form class="home-search-card" id="home-search-form" action="/" method="GET">
         <label>
             <i class="fa-solid fa-magnifying-glass-location"></i>
             <input type="text" name="search" id="home-search-input" placeholder="Search area, college, office, landmark...">
@@ -670,7 +670,24 @@ setInterval(swapDiscoveryPhrase, 2600);
 <script>
 const homeNearbyBtn = document.getElementById("home-nearby-btn");
 const homeNearbyStatus = document.getElementById("home-nearby-status");
+const homeSearchForm = document.getElementById("home-search-form");
 const homeSearchInput = document.getElementById("home-search-input");
+
+if (homeSearchForm) {
+    homeSearchForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const params = new URLSearchParams();
+        const search = homeSearchInput.value.trim();
+
+        if (search) {
+            params.set("search", search);
+        }
+
+        const query = params.toString();
+        window.location.href = `/${query ? `?${query}` : ""}#listings-section`;
+    });
+}
 
 if (homeNearbyBtn) {
     homeNearbyBtn.addEventListener("click", () => {
@@ -717,4 +734,3 @@ if (homeNearbyBtn) {
 </script>
 
 {% endblock %}
-

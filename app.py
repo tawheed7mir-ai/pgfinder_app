@@ -8,6 +8,7 @@ import requests
 import os
 import math
 import secrets
+from urllib.parse import unquote, urlparse
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -329,6 +330,73 @@ def image_src(image):
         return image
 
     return url_for("static", filename=f"images/{image}")
+
+
+def cloudinary_public_id_from_url(image_url):
+    parsed = urlparse(image_url)
+
+    if not parsed.netloc.endswith("cloudinary.com") or "/upload/" not in parsed.path:
+        return None
+
+    upload_path = parsed.path.split("/upload/", 1)[1]
+    path_parts = [part for part in upload_path.split("/") if part]
+
+    while path_parts and not path_parts[0].startswith("v") and "/" in upload_path:
+        if path_parts[0] == "pgfinder":
+            break
+        path_parts.pop(0)
+
+    if path_parts and path_parts[0].startswith("v") and path_parts[0][1:].isdigit():
+        path_parts.pop(0)
+
+    if not path_parts:
+        return None
+
+    public_path = unquote("/".join(path_parts))
+    public_id, _ = os.path.splitext(public_path)
+    return public_id or None
+
+
+def delete_stored_image(image):
+    if not image:
+        return
+
+    image = str(image)
+
+    if image.startswith(("http://", "https://")):
+        public_id = cloudinary_public_id_from_url(image)
+
+        if CLOUDINARY_ENABLED and public_id:
+            cloudinary.uploader.destroy(public_id, resource_type="image")
+
+        return
+
+    image_path = os.path.abspath(os.path.join(app.config["UPLOAD_FOLDER"], image))
+    upload_root = os.path.abspath(app.config["UPLOAD_FOLDER"])
+
+    if os.path.commonpath([upload_root, image_path]) == upload_root and os.path.exists(image_path):
+        os.remove(image_path)
+
+
+def delete_listing_images_from_storage(cursor, listing_id):
+    cursor.execute("""
+        SELECT image
+        FROM listing_images
+        WHERE listing_id=%s
+    """, (listing_id,))
+
+    for image in cursor.fetchall():
+        cursor.execute("""
+            SELECT COUNT(*) AS total
+            FROM listing_images
+            WHERE image=%s
+            AND listing_id<>%s
+        """, (image["image"], listing_id))
+
+        used_elsewhere = cursor.fetchone()["total"]
+
+        if not used_elsewhere:
+            delete_stored_image(image["image"])
 
 
 def is_owner_or_admin():
@@ -1820,6 +1888,8 @@ def delete_listing(id):
         conn.close()
         return redirect("/")
 
+    delete_listing_images_from_storage(cursor, id)
+
     cursor.execute("""
         DELETE FROM listing_images
         WHERE listing_id=%s
@@ -1981,6 +2051,8 @@ def admin_delete_user(id):
     owned_listings = cursor.fetchall()
 
     for listing in owned_listings:
+        delete_listing_images_from_storage(cursor, listing["id"])
+
         cursor.execute("""
             DELETE FROM listing_images
             WHERE listing_id=%s
@@ -2354,28 +2426,12 @@ def edit_listing(id):
         ))
 
         if files:
-
-            for image in images:
-
-                cursor.execute("""
-                    SELECT COUNT(*) AS total
-                    FROM listing_images
-                    WHERE image=%s
-                    AND listing_id<>%s
-                """, (image["image"], id))
-
-                used_elsewhere = cursor.fetchone()["total"]
-                image_path = os.path.join(app.config["UPLOAD_FOLDER"], image["image"])
-
-                if not used_elsewhere and os.path.exists(image_path):
-                    os.remove(image_path)
+            delete_listing_images_from_storage(cursor, id)
 
             cursor.execute("""
                 DELETE FROM listing_images
                 WHERE listing_id=%s
             """, (id,))
-
-            os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
             for file in files:
 

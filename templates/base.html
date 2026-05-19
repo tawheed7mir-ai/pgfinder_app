@@ -672,6 +672,98 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 {% endif %}
 
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion) {
+        document.body.classList.add("motion-ready", "motion-reduced");
+        return;
+    }
+
+    const revealSelectors = [
+        ".hero-content > *",
+        ".home-stats .stat-chip",
+        ".home-discovery-strip",
+        ".home-category-cards a",
+        ".listings-section-head",
+        "#listing-container .card",
+        ".workflow-head",
+        ".workflow-card",
+        ".about-title",
+        ".about-panel",
+        ".about-pro .feature-card",
+        ".testimonial-title",
+        ".testimonial-card",
+        ".owner-cta",
+        ".find-hero > *",
+        ".find-categories .cat",
+        ".find-filter-panel",
+        ".find-results-panel",
+        ".add-hero-panel",
+        ".add-main-card",
+        ".add-side-card",
+        ".edit-form-card",
+        ".edit-media-card",
+        ".owner-listings-hero",
+        ".owner-listing-stats > *",
+        ".owner-listing-card",
+        ".profile-hero-card",
+        ".profile-panel",
+        ".login-card",
+        ".signup-card",
+        ".contact-info-panel",
+        ".contact-form-panel",
+        ".request-hero",
+        ".owner-request-hero",
+        ".request-card",
+        ".owner-request-card",
+        ".sent-request-card",
+        ".detail-pro-hero",
+        ".detail-pro-gallery",
+        ".detail-info-card",
+        ".admin-stat-card",
+        ".admin-panel",
+        ".footer-top > *"
+    ];
+
+    const revealItems = [...document.querySelectorAll(revealSelectors.join(","))]
+        .filter((item, index, list) => list.indexOf(item) === index);
+
+    revealItems.forEach((item, index) => {
+        item.classList.add("motion-reveal");
+        item.style.setProperty("--reveal-delay", `${Math.min(index % 8, 7) * 70}ms`);
+    });
+
+    const observer = "IntersectionObserver" in window
+        ? new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add("is-visible");
+                observer.unobserve(entry.target);
+            });
+        }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" })
+        : null;
+
+    revealItems.forEach((item) => {
+        if (observer) {
+            observer.observe(item);
+        } else {
+            item.classList.add("is-visible");
+        }
+    });
+
+    const premiumTargets = document.querySelectorAll(
+        ".card, .workflow-card, .testimonial-card, .owner-listing-card, .owner-request-card, .sent-request-card, .profile-panel, .about-panel, .add-main-card, .add-side-card, .edit-form-card, .edit-media-card, .login-card, .signup-card, .contact-info-panel, .contact-form-panel"
+    );
+
+    premiumTargets.forEach((target) => target.classList.add("premium-motion-surface"));
+
+    requestAnimationFrame(() => {
+        document.body.classList.add("motion-ready");
+    });
+});
+</script>
 
 </body>
 
