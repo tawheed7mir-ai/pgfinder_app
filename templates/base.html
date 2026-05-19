@@ -136,6 +136,7 @@
 
     <!-- FOOTER -->
 
+    {% if request.endpoint != 'admin_dashboard' and request.path != '/admin' %}
     <footer class="footer">
 
         <div class="footer-top">
@@ -279,6 +280,7 @@
         </div>
 
     </footer>
+    {% endif %}
 
     {% if session.get('user_id') %}
     <div id="notification-stack" class="notification-stack"></div>

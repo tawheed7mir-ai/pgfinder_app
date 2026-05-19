@@ -99,7 +99,7 @@
 
             <div class="owner-request-actions">
                 {% if req.status == "pending" %}
-                <form action="/accept-request/{{ req.id }}" method="POST">
+                <form action="/accept-request/{{ req.id }}" method="POST" data-request-action="accepted" data-request-id="{{ req.id }}">
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                     <button class="accept-btn" type="submit">
                         <i class="fa-solid fa-check"></i>
@@ -110,7 +110,8 @@
                 <form
                     action="/reject-request/{{ req.id }}"
                     method="POST"
-                    onsubmit="return deleteRequest(event, '{{ req.id }}')">
+                    data-request-action="rejected"
+                    data-request-id="{{ req.id }}">
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                     <button class="reject-btn" type="submit">
                         <i class="fa-solid fa-xmark"></i>
@@ -147,39 +148,88 @@
 </main>
 
 <script>
-function deleteRequest(event, id){
-    event.preventDefault();
-    const form = event.target;
-    const token = form.querySelector("input[name='_csrf_token']").value;
+document.querySelectorAll("[data-request-action]").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
 
-    const shouldReject = confirm("Are you sure you want to reject this request?");
-
-    if (!shouldReject) {
-        return false;
-    }
-
-    fetch(`/reject-request/${id}`, {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": token
-        }
-    })
-    .then((res) => {
-        if (!res.ok) return;
-
+        const action = form.dataset.requestAction;
+        const id = form.dataset.requestId;
+        const token = form.querySelector("input[name='_csrf_token']").value;
         const card = document.getElementById(`request-${id}`);
+        const button = form.querySelector("button");
 
-        if (!card) return;
+        if (action === "rejected" && !confirm("Reject this booking request?")) {
+            return;
+        }
 
-        card.classList.add("request-leaving");
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${action === "accepted" ? "Accepting" : "Rejecting"}`;
+        }
 
-        setTimeout(() => {
-            card.remove();
-        }, 320);
+        window.PGNotify?.prepareAudio?.();
+
+        try {
+            const res = await fetch(form.action, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": token,
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+
+            if (!res.ok) {
+                throw new Error("Request update failed");
+            }
+
+            if (card) {
+                card.classList.remove("pending", "accepted", "rejected");
+                card.classList.add(action);
+
+                const pill = card.querySelector(".owner-status-pill");
+                if (pill) {
+                    pill.className = `owner-status-pill ${action}`;
+                    pill.innerHTML = action === "accepted"
+                        ? `<i class="fa-solid fa-circle-check"></i> accepted`
+                        : `<i class="fa-solid fa-circle-xmark"></i> rejected`;
+                }
+
+                const actionBox = card.querySelector(".owner-request-actions");
+                if (actionBox) {
+                    actionBox.innerHTML = `
+                        <div class="handled-state">
+                            <i class="fa-solid fa-lock"></i>
+                            Already ${action}
+                        </div>
+                    `;
+                }
+            }
+
+            window.PGNotify?.show?.({
+                type: action === "accepted" ? "request_accepted" : "request_rejected",
+                title: action === "accepted" ? "Request accepted" : "Request rejected",
+                message: action === "accepted"
+                    ? "The seeker will be notified right away."
+                    : "The seeker will see the rejected status.",
+                action: "Updated"
+            });
+        } catch (error) {
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = action === "accepted"
+                    ? `<i class="fa-solid fa-check"></i> Accept`
+                    : `<i class="fa-solid fa-xmark"></i> Reject`;
+            }
+
+            window.PGNotify?.show?.({
+                type: "warning",
+                title: "Could not update request",
+                message: "Please check your connection and try again.",
+                action: "Retry"
+            });
+        }
     });
-
-    return false;
-}
+});
 </script>
 
 {% endblock %}

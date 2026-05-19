@@ -3589,11 +3589,14 @@ REQUESTS PAGE
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:10px;
+    perspective:800px;
 }
 
 .home-search-card button,
 .home-nearby-btn,
 .advanced-search-link{
+    position:relative;
+    overflow:hidden;
     min-height:48px;
     display:inline-flex;
     align-items:center;
@@ -3602,6 +3605,26 @@ REQUESTS PAGE
     border-radius:13px;
     font-weight:900;
     text-decoration:none;
+    will-change:transform;
+}
+
+.home-search-card button::before,
+.home-nearby-btn::before,
+.advanced-search-link::before{
+    content:"";
+    position:absolute;
+    inset:-55% auto -55% -40%;
+    width:38%;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,0.58), transparent);
+    transform:skewX(-18deg) translateX(var(--shine-x, -160%));
+    pointer-events:none;
+}
+
+.home-search-card button > *,
+.home-nearby-btn > *,
+.advanced-search-link > *{
+    position:relative;
+    z-index:2;
 }
 
 .home-search-actions span{
@@ -3633,7 +3656,9 @@ REQUESTS PAGE
 
 .home-nearby-btn{
     border:1px solid rgba(24,169,153,0.25) !important;
-    background:#ecfdf5 !important;
+    background:
+        radial-gradient(circle at 18% 12%, rgba(24,169,153,0.20), transparent 32%),
+        #ecfdf5 !important;
     color:#047857 !important;
     box-shadow:none !important;
 }
@@ -3647,6 +3672,7 @@ REQUESTS PAGE
     grid-column:1 / -1;
     border:1px solid rgba(255,56,92,0.18);
     background:
+        radial-gradient(circle at 12% 20%, rgba(255,56,92,0.16), transparent 34%),
         linear-gradient(135deg, rgba(255,56,92,0.10), rgba(24,169,153,0.10)),
         #fff;
     color:#111827;
@@ -4210,13 +4236,31 @@ REQUESTS PAGE
 }
 
 .workflow-section{
+    position:relative;
+    overflow:hidden;
     padding:94px 24px 86px;
     background:
         radial-gradient(circle at 85% 10%, rgba(24,169,153,0.10), transparent 28%),
         linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
 }
 
+.workflow-section::before{
+    content:"";
+    position:absolute;
+    inset:14% auto auto 50%;
+    width:min(720px, 86vw);
+    height:min(720px, 86vw);
+    border-radius:50%;
+    background:conic-gradient(from 120deg, rgba(255,56,92,0.12), rgba(24,169,153,0.14), transparent 45%, rgba(255,56,92,0.12));
+    filter:blur(26px);
+    opacity:0.75;
+    transform:translateX(-50%);
+    pointer-events:none;
+}
+
 .workflow-head{
+    position:relative;
+    z-index:2;
     max-width:760px;
     margin:0 auto 42px;
     text-align:center;
@@ -4236,11 +4280,27 @@ REQUESTS PAGE
 }
 
 .workflow-grid{
+    position:relative;
+    z-index:2;
     width:min(1120px, 100%);
     margin:0 auto;
     display:grid;
     grid-template-columns:repeat(3, minmax(0, 1fr));
     gap:20px;
+    perspective:1100px;
+}
+
+.workflow-rail{
+    position:absolute;
+    top:50%;
+    left:12%;
+    right:12%;
+    height:2px;
+    border-radius:999px;
+    background:linear-gradient(90deg, transparent, rgba(255,56,92,0.55), rgba(24,169,153,0.55), transparent);
+    transform:translateY(-50%);
+    box-shadow:0 0 24px rgba(24,169,153,0.18);
+    pointer-events:none;
 }
 
 .workflow-card{
@@ -4249,18 +4309,54 @@ REQUESTS PAGE
     padding:30px;
     border:1px solid rgba(15,23,42,0.08);
     border-radius:24px;
-    background:white;
+    background:rgba(255,255,255,0.92);
     box-shadow:0 24px 70px rgba(15,23,42,0.08);
     overflow:hidden;
-    transition:transform 0.25s ease, box-shadow 0.25s ease;
+    transform-style:preserve-3d;
+    will-change:transform;
+    transition:box-shadow 0.25s ease, border-color 0.25s ease;
+    backdrop-filter:blur(16px);
+}
+
+.workflow-card::before{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    border-radius:inherit;
+    background:linear-gradient(135deg, rgba(255,56,92,0.16), transparent 42%, rgba(24,169,153,0.18));
+    opacity:0;
+    transition:opacity 0.22s ease;
+    pointer-events:none;
+}
+
+.workflow-card::after{
+    content:"";
+    position:absolute;
+    inset:auto 24px 22px 24px;
+    height:4px;
+    border-radius:999px;
+    background:linear-gradient(90deg,#ff385c,#18a999);
+    transform:scaleX(0);
+    transform-origin:left;
+    transition:transform 0.28s ease;
 }
 
 .workflow-card:hover{
-    transform:translateY(-7px);
+    border-color:rgba(24,169,153,0.22);
     box-shadow:0 32px 90px rgba(15,23,42,0.12);
 }
 
+.workflow-card:hover::before{
+    opacity:1;
+}
+
+.workflow-card:hover::after{
+    transform:scaleX(1);
+}
+
 .workflow-card > i{
+    position:relative;
+    z-index:2;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -4271,9 +4367,12 @@ REQUESTS PAGE
     background:#111827;
     color:white;
     font-size:22px;
+    box-shadow:0 16px 34px rgba(15,23,42,0.18);
+    will-change:transform;
 }
 
 .step-number{
+    z-index:1;
     position:absolute;
     right:24px;
     top:20px;
@@ -4283,12 +4382,16 @@ REQUESTS PAGE
 }
 
 .workflow-card h3{
+    position:relative;
+    z-index:2;
     color:#111827;
     font-size:22px;
     margin-bottom:12px;
 }
 
 .workflow-card p{
+    position:relative;
+    z-index:2;
     color:#64748b;
     line-height:1.75;
 }

@@ -916,6 +916,24 @@ setTimeout(() => {
         setTimeout(() => toast.remove(), 250);
     }
 }, 4200);
+
+document.addEventListener("DOMContentLoaded", () => {
+    const toast = document.querySelector(".request-success-toast");
+
+    if (!toast || !window.PGNotify) return;
+
+    const isSuccess = toast.classList.contains("sent") || toast.classList.contains("resent");
+    const isPending = toast.classList.contains("already-pending");
+
+    window.PGNotify.show({
+        type: isSuccess ? "success" : "info",
+        title: isSuccess ? "Request sent" : "Request status",
+        message: toast.textContent.trim(),
+        action: isPending ? "Already pending" : "Saved"
+    }, {
+        sound: isSuccess
+    });
+});
 </script>
 
 {% endblock %}
