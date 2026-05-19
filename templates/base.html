@@ -732,7 +732,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     revealItems.forEach((item, index) => {
         item.classList.add("motion-reveal");
-        item.style.setProperty("--reveal-delay", `${Math.min(index % 8, 7) * 70}ms`);
+        item.style.setProperty("--reveal-delay", `${Math.min(index % 4, 3) * 12}ms`);
     });
 
     const observer = "IntersectionObserver" in window
