@@ -387,6 +387,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const input = document.getElementById("location-input");
     const suggestions = document.getElementById("suggestions");
+    const locationOptions = document.getElementById("location-options");
     const latInput = document.getElementById("latitude");
     const lngInput = document.getElementById("longitude");
     const mapElement = document.getElementById("map");
@@ -396,14 +397,46 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const indiaCenter = [22.9734, 78.6569];
+    const fallbackLocations = [
+        { name: "Delhi, India", lat: "28.6139", lon: "77.2090", type: "fallback" },
+        { name: "Mumbai, Maharashtra, India", lat: "19.0760", lon: "72.8777", type: "fallback" },
+        { name: "Bengaluru, Karnataka, India", lat: "12.9716", lon: "77.5946", type: "fallback" },
+        { name: "Hyderabad, Telangana, India", lat: "17.3850", lon: "78.4867", type: "fallback" },
+        { name: "Ahmedabad, Gujarat, India", lat: "23.0225", lon: "72.5714", type: "fallback" },
+        { name: "Srinagar, Jammu and Kashmir, India", lat: "34.0837", lon: "74.7973", type: "fallback" },
+        { name: "Chandigarh, India", lat: "30.7333", lon: "76.7794", type: "fallback" },
+        { name: "Pune, Maharashtra, India", lat: "18.5204", lon: "73.8567", type: "fallback" },
+        { name: "Kolkata, West Bengal, India", lat: "22.5726", lon: "88.3639", type: "fallback" },
+        { name: "Chennai, Tamil Nadu, India", lat: "13.0827", lon: "80.2707", type: "fallback" }
+    ];
 
-    const map = L.map(mapElement).setView(indiaCenter, 5);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
-
+    const hasLeaflet = Boolean(window.L);
+    let map = null;
     let marker = null;
+
+    function showMapUnavailable() {
+        mapElement.innerHTML = `
+            <div class="map-unavailable">
+                <i class="fa-solid fa-map-location-dot"></i>
+                <span>Map could not load. Search suggestions are still available.</span>
+            </div>
+        `;
+    }
+
+    try {
+        if (hasLeaflet) {
+            map = L.map(mapElement).setView(indiaCenter, 5);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+        } else {
+            showMapUnavailable();
+        }
+    } catch (err) {
+        console.log("Map initialization error:", err);
+        map = null;
+        showMapUnavailable();
+    }
 
     function setLocation(lat, lng, name = "", shouldReverse = false) {
 
@@ -414,18 +447,20 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (marker) {
-            marker.setLatLng([latNumber, lngNumber]);
-        } else {
-            marker = L.marker([latNumber, lngNumber], { draggable: true }).addTo(map);
+        if (map) {
+            if (marker) {
+                marker.setLatLng([latNumber, lngNumber]);
+            } else {
+                marker = L.marker([latNumber, lngNumber], { draggable: true }).addTo(map);
 
-            marker.on("dragend", async () => {
-                const pos = marker.getLatLng();
-                await setLocation(pos.lat, pos.lng, "", true);
-            });
+                marker.on("dragend", async () => {
+                    const pos = marker.getLatLng();
+                    await setLocation(pos.lat, pos.lng, "", true);
+                });
+            }
+
+            map.setView([latNumber, lngNumber], 16);
         }
-
-        map.setView([latNumber, lngNumber], 16);
 
         latInput.value = latNumber;
         lngInput.value = lngNumber;
@@ -457,6 +492,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderSuggestions(data) {
         suggestions.innerHTML = "";
+        if (locationOptions) locationOptions.innerHTML = "";
 
         if (data.length === 0) {
             const empty = document.createElement("div");
@@ -467,6 +503,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         data.forEach(place => {
+            if (locationOptions) {
+                const option = document.createElement("option");
+                option.value = place.name || "";
+                option.dataset.lat = place.lat || "";
+                option.dataset.lon = place.lon || "";
+                locationOptions.appendChild(option);
+            }
 
             const div = document.createElement("div");
             div.className = "suggestion-item";
@@ -480,35 +523,54 @@ document.addEventListener("DOMContentLoaded", () => {
             div.appendChild(title);
             div.appendChild(detail);
 
-            div.onclick = () => {
+            div.addEventListener("mousedown", (event) => {
+                event.preventDefault();
                 setLocation(place.lat, place.lon, place.name);
                 suggestions.innerHTML = "";
-            };
+            });
 
             suggestions.appendChild(div);
         });
     }
 
-    let timeout;
+    function fallbackSuggestions(query) {
+        const normalized = query.toLowerCase();
+        const matches = fallbackLocations.filter((place) => (
+            place.name.toLowerCase().includes(normalized)
+        ));
 
-    input.addEventListener("input", () => {
+        return matches.length ? matches : fallbackLocations.slice(0, 5);
+    }
+
+    let timeout;
+    let locationRequest = null;
+
+    function handleLocationInput() {
 
         clearTimeout(timeout);
 
+        const query = input.value.trim();
+
+        if (query.length < 2) {
+            suggestions.innerHTML = "";
+            return;
+        }
+
+        renderSuggestions(fallbackSuggestions(query));
+
         timeout = setTimeout(async () => {
-
-            const query = input.value.trim();
-
-            if (query.length < 2) {
-                suggestions.innerHTML = "";
-                return;
-            }
 
             let data = [];
 
             try {
+                if (locationRequest) {
+                    locationRequest.abort();
+                }
+
+                locationRequest = new AbortController();
                 const res = await fetch(
-                    `/api/location-search?q=${encodeURIComponent(query)}`
+                    `/api/location-search?q=${encodeURIComponent(query)}`,
+                    { signal: locationRequest.signal }
                 );
 
                 if (!res.ok) {
@@ -517,10 +579,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 data = await res.json();
             } catch (err) {
+                if (err.name === "AbortError") return;
                 suggestions.innerHTML = "";
                 const errorItem = document.createElement("div");
                 errorItem.className = "suggestion-item";
-                errorItem.textContent = "Unable to search location";
+                errorItem.textContent = "Unable to search right now. Try a nearby city or landmark.";
                 suggestions.appendChild(errorItem);
                 console.log("Location search error:", err);
                 return;
@@ -530,15 +593,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
         }, 300);
 
+    }
+
+    input.addEventListener("input", handleLocationInput);
+    input.addEventListener("keyup", handleLocationInput);
+    input.addEventListener("change", () => {
+        if (!locationOptions) return;
+
+        const selected = [...locationOptions.options].find((option) => option.value === input.value);
+
+        if (selected?.dataset.lat && selected?.dataset.lon) {
+            setLocation(selected.dataset.lat, selected.dataset.lon, selected.value);
+            suggestions.innerHTML = "";
+        }
+    });
+    input.addEventListener("focus", () => {
+        if (input.value.trim().length >= 2) {
+            renderSuggestions(fallbackSuggestions(input.value.trim()));
+        }
     });
 
-    map.on("click", (e) => {
-        setLocation(e.latlng.lat, e.latlng.lng, "Custom Location", true);
-    });
+    if (map) {
+        map.on("click", (e) => {
+            setLocation(e.latlng.lat, e.latlng.lng, "Custom Location", true);
+        });
 
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 100);
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 180);
+    }
 
     // ❌ CLOSE DROPDOWN
     document.addEventListener("click", (e) => {
@@ -865,6 +948,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function enhanceAnimatedCard(card) {
         if (animatedCards.has(card)) return;
+        if (card.closest(".add-studio")) return;
         animatedCards.add(card);
         card.classList.add("premium-motion-surface");
 

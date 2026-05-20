@@ -673,7 +673,7 @@ def location_search():
             "https://nominatim.openstreetmap.org/search",
             params=params,
             headers=headers,
-            timeout=6
+            timeout=2
         )
         response.raise_for_status()
         places = response.json()
