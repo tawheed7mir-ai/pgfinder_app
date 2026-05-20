@@ -102,6 +102,19 @@ INDIA_MAP_CENTER = {
     "lng": 78.6569
 }
 
+LOCATION_FALLBACKS = [
+    {"name": "Delhi, India", "lat": "28.6139", "lon": "77.2090"},
+    {"name": "Mumbai, Maharashtra, India", "lat": "19.0760", "lon": "72.8777"},
+    {"name": "Bengaluru, Karnataka, India", "lat": "12.9716", "lon": "77.5946"},
+    {"name": "Hyderabad, Telangana, India", "lat": "17.3850", "lon": "78.4867"},
+    {"name": "Ahmedabad, Gujarat, India", "lat": "23.0225", "lon": "72.5714"},
+    {"name": "Srinagar, Jammu and Kashmir, India", "lat": "34.0837", "lon": "74.7973"},
+    {"name": "Chandigarh, India", "lat": "30.7333", "lon": "76.7794"},
+    {"name": "Pune, Maharashtra, India", "lat": "18.5204", "lon": "73.8567"},
+    {"name": "Kolkata, West Bengal, India", "lat": "22.5726", "lon": "88.3639"},
+    {"name": "Chennai, Tamil Nadu, India", "lat": "13.0827", "lon": "80.2707"}
+]
+
 
 @app.template_filter("rent_period_label")
 def rent_period_label(value):
@@ -616,6 +629,24 @@ def get_coordinates(place):
     return None, None
 
 
+def fallback_location_results(query):
+    query = (query or "").lower()
+    matches = [
+        place for place in LOCATION_FALLBACKS
+        if query in place["name"].lower()
+    ]
+
+    return [
+        {
+            "name": place["name"],
+            "lat": place["lat"],
+            "lon": place["lon"],
+            "type": "fallback"
+        }
+        for place in (matches or LOCATION_FALLBACKS[:5])
+    ]
+
+
 @app.route("/api/location-search")
 def location_search():
 
@@ -633,7 +664,8 @@ def location_search():
     }
 
     headers = {
-        "User-Agent": "PGFinder India location search"
+        "User-Agent": "PGFinder/1.0 (Railway app; owner location search)",
+        "Accept-Language": "en-IN,en;q=0.9"
     }
 
     try:
@@ -646,7 +678,7 @@ def location_search():
         response.raise_for_status()
         places = response.json()
     except requests.RequestException:
-        return jsonify({"error": "Unable to search locations"}), 502
+        return jsonify(fallback_location_results(query))
 
     results = []
 
@@ -661,7 +693,7 @@ def location_search():
             "type": place.get("type", "place")
         })
 
-    return jsonify(results)
+    return jsonify(results or fallback_location_results(query))
 
 
 @app.route("/api/reverse-location")
@@ -682,7 +714,8 @@ def reverse_location():
     }
 
     headers = {
-        "User-Agent": "PGFinder India reverse geocoding"
+        "User-Agent": "PGFinder/1.0 (Railway app; owner reverse geocoding)",
+        "Accept-Language": "en-IN,en;q=0.9"
     }
 
     try:
