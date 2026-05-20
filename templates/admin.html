@@ -664,13 +664,6 @@
                         <i class="fa-solid fa-plus"></i>
                         Add listing
                     </a>
-                    <form method="POST" action="/admin/migrate-images-to-cloudinary">
-                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="admin-action-link">
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
-                            Migrate images
-                        </button>
-                    </form>
                     <a href="/find" class="admin-action-link">
                         <i class="fa-solid fa-magnifying-glass-location"></i>
                         Inspect marketplace

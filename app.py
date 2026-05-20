@@ -342,44 +342,6 @@ def image_src(image):
     return url_for("static", filename=f"images/{image}")
 
 
-def local_image_path(image):
-    if not image or str(image).startswith(("http://", "https://")):
-        return None
-
-    image_path = os.path.abspath(os.path.join(app.config["UPLOAD_FOLDER"], str(image)))
-    upload_root = os.path.abspath(app.config["UPLOAD_FOLDER"])
-
-    if os.path.commonpath([upload_root, image_path]) != upload_root:
-        return None
-
-    if not os.path.exists(image_path):
-        return None
-
-    return image_path
-
-
-def upload_local_image_to_cloudinary(image):
-    if not CLOUDINARY_ENABLED:
-        return None
-
-    image_path = local_image_path(image)
-
-    if not image_path:
-        return None
-
-    filename = secure_filename(os.path.basename(image_path))
-    name, _ = os.path.splitext(filename)
-    upload = cloudinary.uploader.upload(
-        image_path,
-        folder="pgfinder/listings",
-        public_id=f"{name[:60]}-{secrets.token_hex(8)}",
-        resource_type="image",
-        overwrite=False
-    )
-
-    return upload["secure_url"]
-
-
 def cloudinary_public_id_from_url(image_url):
     parsed = urlparse(image_url)
 
@@ -2048,62 +2010,6 @@ def admin_dashboard():
         total_requests=total_requests,
         request_stats=request_stats
     )
-
-
-@app.route("/admin/migrate-images-to-cloudinary", methods=["POST"])
-def admin_migrate_images_to_cloudinary():
-
-    if "user_id" not in session:
-        return redirect("/login")
-
-    if not is_admin():
-        return redirect("/")
-
-    if not CLOUDINARY_ENABLED:
-        flash("Cloudinary is not configured. Add the Railway variables and redeploy first.")
-        return redirect("/admin")
-
-    conn = db()
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("""
-        SELECT id, image
-        FROM listing_images
-        WHERE image NOT LIKE 'http://%'
-        AND image NOT LIKE 'https://%'
-    """)
-    local_images = cursor.fetchall()
-
-    migrated = 0
-    missing = 0
-
-    for image in local_images:
-        cloudinary_url = upload_local_image_to_cloudinary(image["image"])
-
-        if not cloudinary_url:
-            missing += 1
-            continue
-
-        cursor.execute("""
-            UPDATE listing_images
-            SET image=%s
-            WHERE id=%s
-        """, (cloudinary_url, image["id"]))
-        migrated += 1
-
-    conn.commit()
-    conn.close()
-
-    if migrated:
-        flash(f"Migrated {migrated} listing image(s) to Cloudinary.")
-
-    if missing:
-        flash(f"{missing} local image file(s) were not found on this deployment.")
-
-    if not migrated and not missing:
-        flash("All listing images are already Cloudinary URLs.")
-
-    return redirect("/admin")
 
 
 @app.route("/admin/user/<int:id>/role", methods=["POST"])
