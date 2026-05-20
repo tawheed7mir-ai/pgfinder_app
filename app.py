@@ -80,17 +80,26 @@ PRICE_MONTHLY_SQL = """
 CLOUDINARY_CLOUD_NAME = os.environ.get("CLOUDINARY_CLOUD_NAME")
 CLOUDINARY_API_KEY = os.environ.get("CLOUDINARY_API_KEY")
 CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET")
-CLOUDINARY_ENABLED = all([CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET])
+CLOUDINARY_URL = os.environ.get("CLOUDINARY_URL")
+CLOUDINARY_ENABLED = bool(CLOUDINARY_URL) or all([CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET])
 
 if CLOUDINARY_ENABLED:
     if cloudinary is None:
         raise RuntimeError("Cloudinary variables are set, but the cloudinary package is not installed")
 
-    cloudinary.config(
-        cloud_name=CLOUDINARY_CLOUD_NAME,
-        api_key=CLOUDINARY_API_KEY,
-        api_secret=CLOUDINARY_API_SECRET,
-        secure=True
+    if CLOUDINARY_URL:
+        cloudinary.config(secure=True)
+    else:
+        cloudinary.config(
+            cloud_name=CLOUDINARY_CLOUD_NAME,
+            api_key=CLOUDINARY_API_KEY,
+            api_secret=CLOUDINARY_API_SECRET,
+            secure=True
+        )
+elif os.environ.get("FLASK_ENV") == "production":
+    raise RuntimeError(
+        "Cloudinary must be configured in production. Set CLOUDINARY_URL or "
+        "CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET."
     )
 
 INDIA_MAP_CENTER = {
