@@ -168,6 +168,11 @@
         {% include "listings_partial.html" %}
     </div>
 
+    <div class="listing-scroll-hint" id="listing-scroll-hint" aria-hidden="true">
+        <span>Scroll</span>
+        <i class="fa-solid fa-arrow-right"></i>
+    </div>
+
 </section>
 
 {% if total > 4 and not filters_active and not nearby_active and not category_filter %}
@@ -629,8 +634,9 @@ setInterval(swapHeroSubtitle, 3000);
 document.addEventListener("DOMContentLoaded", () => {
     const actionButtons = document.querySelectorAll(".home-search-actions button, .home-search-actions a");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const compactPointer = window.matchMedia("(max-width: 700px), (hover: none)").matches;
 
-    if (!actionButtons.length || reduceMotion || !window.gsap) return;
+    if (!actionButtons.length || reduceMotion || compactPointer || !window.gsap) return;
 
     gsap.set(actionButtons, {
         y: 12,
@@ -650,31 +656,11 @@ document.addEventListener("DOMContentLoaded", () => {
         delay: 0.18
     });
 
-    const pulse = gsap.timeline({ repeat: -1, repeatDelay: 2.6 });
-    pulse
-        .to(actionButtons, {
-            boxShadow: "0 18px 46px rgba(24,169,153,0.18)",
-            y: -2,
-            duration: 0.26,
-            stagger: 0.07,
-            ease: "power2.out"
-        })
-        .to(actionButtons, {
-            boxShadow: "",
-            y: 0,
-            duration: 0.34,
-            stagger: 0.05,
-            ease: "power2.out"
-        });
-
     actionButtons.forEach((button) => {
         button.addEventListener("mouseenter", () => {
-            pulse.pause();
-
             gsap.to(button, {
-                y: -4,
-                scale: 1.025,
-                rotateX: 4,
+                y: -2,
+                scale: 1.01,
                 duration: 0.22,
                 ease: "power2.out"
             });
@@ -691,26 +677,21 @@ document.addEventListener("DOMContentLoaded", () => {
             const y = event.clientY - rect.top;
 
             gsap.to(button, {
-                x: (x / rect.width - 0.5) * 7,
-                rotateY: (x / rect.width - 0.5) * 7,
-                rotateX: -(y / rect.height - 0.5) * 7,
+                x: (x / rect.width - 0.5) * 3,
+                y: -2 + (y / rect.height - 0.5) * 2,
                 duration: 0.22,
                 ease: "power2.out"
             });
         });
 
         button.addEventListener("mouseleave", () => {
-            pulse.play();
-
             gsap.to(button, {
                 x: 0,
                 y: 0,
                 scale: 1,
-                rotateX: 0,
-                rotateY: 0,
                 "--shine-x": "-160%",
-                duration: 0.32,
-                ease: "elastic.out(1, 0.6)"
+                duration: 0.24,
+                ease: "power2.out"
             });
         });
     });
@@ -724,6 +705,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const workflowCards = document.querySelectorAll(".workflow-card");
     const workflowRail = document.querySelector(".workflow-rail");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const compactPointer = window.matchMedia("(max-width: 700px), (hover: none)").matches;
 
     if (!workflowSection || !workflowCards.length || reduceMotion || !window.gsap) return;
 
@@ -780,26 +762,28 @@ document.addEventListener("DOMContentLoaded", () => {
     workflowCards.forEach((card) => {
         const icon = card.querySelector("i");
 
+        if (compactPointer) return;
+
         card.addEventListener("mousemove", (event) => {
             const rect = card.getBoundingClientRect();
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
-            const rotateY = ((x / rect.width) - 0.5) * 9;
-            const rotateX = -((y / rect.height) - 0.5) * 9;
+            const rotateY = ((x / rect.width) - 0.5) * 3;
+            const rotateX = -((y / rect.height) - 0.5) * 3;
 
             gsap.to(card, {
                 rotateX,
                 rotateY,
-                y: -8,
+                y: -3,
                 duration: 0.28,
                 ease: "power2.out"
             });
 
             if (icon) {
                 gsap.to(icon, {
-                    x: (x / rect.width - 0.5) * 10,
-                    y: (y / rect.height - 0.5) * 10,
-                    scale: 1.06,
+                    x: (x / rect.width - 0.5) * 4,
+                    y: (y / rect.height - 0.5) * 4,
+                    scale: 1.02,
                     duration: 0.28,
                     ease: "power2.out"
                 });
@@ -811,8 +795,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 rotateX: 0,
                 rotateY: 0,
                 y: 0,
-                duration: 0.36,
-                ease: "elastic.out(1, 0.55)"
+                duration: 0.24,
+                ease: "power2.out"
             });
 
             if (icon) {
@@ -934,6 +918,27 @@ if (homeNearbyBtn) {
             }
         );
     });
+}
+
+const listingContainer = document.getElementById("listing-container");
+const listingScrollHint = document.getElementById("listing-scroll-hint");
+
+if (listingContainer && listingScrollHint) {
+    const hideListingHint = () => {
+        listingScrollHint.classList.add("is-hidden");
+        setTimeout(() => listingScrollHint.remove(), 260);
+    };
+
+    if (listingContainer.scrollWidth <= listingContainer.clientWidth + 8) {
+        listingScrollHint.remove();
+    } else {
+        listingContainer.addEventListener("scroll", () => {
+            if (listingContainer.scrollLeft > 24) hideListingHint();
+        }, { passive: true });
+        listingContainer.addEventListener("touchstart", hideListingHint, { passive: true, once: true });
+        listingContainer.addEventListener("wheel", hideListingHint, { passive: true, once: true });
+        listingContainer.addEventListener("pointerdown", hideListingHint, { passive: true, once: true });
+    }
 }
 </script>
 

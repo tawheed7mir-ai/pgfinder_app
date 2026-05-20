@@ -9800,3 +9800,160 @@ select:focus{
         transform:none !important;
     }
 }
+
+/* Final mobile fit and calmer home interaction fixes */
+.home-category-cards a:hover,
+.workflow-card:hover,
+.card:hover{
+    transform:translateY(-2px);
+}
+
+.add-hero-panel,
+.owner-listings-hero,
+.owner-request-hero,
+.profile-hero-card,
+.request-hero,
+.find-hero{
+    animation:none;
+}
+
+@media(max-width:700px){
+    html,
+    body{
+        max-width:100%;
+        overflow-x:hidden;
+    }
+
+    .home-search-card button:hover,
+    .home-nearby-btn:hover,
+    .advanced-search-link:hover,
+    .home-category-cards a:hover,
+    .workflow-card:hover,
+    .card:hover,
+    .cat:hover,
+    .map-link:hover,
+    .view-btn:hover{
+        transform:none !important;
+        box-shadow:inherit;
+    }
+
+    .home-search-card button::after,
+    .home-nearby-btn::after,
+    .advanced-search-link::after,
+    .home-category-cards a::before,
+    .home-category-cards a::after,
+    .cat::before{
+        display:none !important;
+    }
+
+    .find-page{
+        width:100%;
+        overflow-x:hidden;
+    }
+
+    .find-page .find-categories{
+        width:calc(100% - 16px) !important;
+        max-width:430px !important;
+        margin:0 auto 8px !important;
+        padding:6px !important;
+        display:grid !important;
+        grid-template-columns:repeat(4, minmax(0, 1fr)) !important;
+        gap:5px !important;
+        overflow:hidden !important;
+    }
+
+    .find-page .find-categories .cat{
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        min-height:36px !important;
+        padding:0 3px !important;
+        gap:3px !important;
+        white-space:normal !important;
+        text-align:center !important;
+        line-height:1.05 !important;
+        font-size:10px !important;
+        transform:none !important;
+        box-shadow:none !important;
+    }
+
+    .find-page .find-categories .cat i{
+        flex:0 0 auto;
+        font-size:10px !important;
+    }
+
+    .find-page .find-layout,
+    .find-page .find-filter-panel,
+    .find-page .find-results-panel{
+        min-width:0 !important;
+        max-width:100% !important;
+    }
+
+    .find-page .find-filter-panel,
+    .find-page .find-results-panel{
+        width:calc(100% - 16px) !important;
+        margin-left:auto !important;
+        margin-right:auto !important;
+    }
+
+    .find-page .find-results-panel #listing-container{
+        width:100% !important;
+        max-width:100% !important;
+        overflow:visible !important;
+    }
+
+    body:not(.find-page) #listings-section #listing-container,
+    #listings-section > #listing-container{
+        width:100% !important;
+        max-width:100% !important;
+        margin:0 !important;
+        padding:14px 14px 24px !important;
+        display:flex !important;
+        grid-template-columns:none !important;
+        gap:14px !important;
+        overflow-x:auto !important;
+        overflow-y:hidden !important;
+        overscroll-behavior-x:contain !important;
+        scroll-snap-type:x mandatory !important;
+        scrollbar-width:thin !important;
+        scrollbar-color:#ff385c #edf2f7 !important;
+        -webkit-overflow-scrolling:touch !important;
+    }
+
+    #listings-section > #listing-container::-webkit-scrollbar{
+        height:6px;
+    }
+
+    #listings-section > #listing-container::-webkit-scrollbar-track{
+        background:#edf2f7;
+        border-radius:999px;
+    }
+
+    #listings-section > #listing-container::-webkit-scrollbar-thumb{
+        background:#ff385c;
+        border-radius:999px;
+    }
+
+    #listings-section > #listing-container .card{
+        flex:0 0 min(84vw, 340px) !important;
+        width:auto !important;
+        min-width:0 !important;
+        scroll-snap-align:start !important;
+    }
+
+    .find-page #listings-section > #listing-container{
+        padding:4px 0 6px !important;
+        display:grid !important;
+        grid-template-columns:1fr !important;
+        gap:12px !important;
+        overflow:visible !important;
+        scroll-snap-type:none !important;
+        scrollbar-width:auto !important;
+    }
+
+    .find-page #listings-section > #listing-container .card{
+        width:100% !important;
+        flex:initial !important;
+        scroll-snap-align:none !important;
+    }
+}
