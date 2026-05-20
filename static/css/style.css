@@ -5547,6 +5547,38 @@ REQUEST BOX
     box-shadow:0 24px 50px rgba(24,169,153,0.26);
 }
 
+.pro-add-page .add-hero-panel,
+.pro-add-page .add-main-card,
+.pro-add-page .add-side-card,
+.pro-add-page .map-card,
+.pro-add-page .motion-reveal,
+.pro-add-page .premium-motion-surface,
+.pro-add-page input,
+.pro-add-page textarea,
+.pro-add-page select{
+    animation:none !important;
+    transform:none !important;
+    filter:none !important;
+}
+
+.pro-add-page .motion-reveal,
+.pro-add-page .motion-reveal.is-visible{
+    opacity:1 !important;
+}
+
+.pro-add-page .premium-motion-surface::after{
+    display:none !important;
+}
+
+.pro-add-page .add-main-card:hover,
+.pro-add-page .add-side-card:hover,
+.pro-add-page .map-card:hover,
+.pro-add-page input:focus,
+.pro-add-page textarea:focus,
+.pro-add-page select:focus{
+    transform:none !important;
+}
+
 @media(max-width:1020px){
     .add-hero-panel,
     .add-studio{
