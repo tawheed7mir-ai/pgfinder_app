@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="app-error-page">
+    <section class="app-error-card">
+        <div class="app-error-icon">
+            <i class="fa-solid fa-circle-exclamation"></i>
+        </div>
+        <h1>{{ title }}</h1>
+        <p>{{ message }}</p>
+        <a href="{{ action_href }}">{{ action_label }}</a>
+    </section>
+</main>
+{% endblock %}

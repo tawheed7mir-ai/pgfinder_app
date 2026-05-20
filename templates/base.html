@@ -384,6 +384,9 @@ document.addEventListener("DOMContentLoaded", () => {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+    if (window.PG_SKIP_BASE_LOCATION_SEARCH) {
+        return;
+    }
 
     const input = document.getElementById("location-input");
     const suggestions = document.getElementById("suggestions");

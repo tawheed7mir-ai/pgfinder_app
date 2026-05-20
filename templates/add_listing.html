@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
+<script>
+window.PG_SKIP_BASE_LOCATION_SEARCH = true;
+</script>
 
 <main class="add-page pro-add-page">
 
@@ -125,9 +128,11 @@
                         type="text"
                         id="location-input"
                         name="location"
+                        list="location-options"
                         placeholder="Search any area, city, college, market, or landmark in India..."
                         autocomplete="off"
                         required>
+                    <datalist id="location-options"></datalist>
                 </div>
                 <div id="suggestions"></div>
             </div>
@@ -229,6 +234,180 @@ function previewImages(event) {
         reader.readAsDataURL(file);
     }
 }
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const input = document.getElementById("location-input");
+    const suggestions = document.getElementById("suggestions");
+    const options = document.getElementById("location-options");
+    const latInput = document.getElementById("latitude");
+    const lngInput = document.getElementById("longitude");
+    const mapElement = document.getElementById("map");
+
+    if (!input || !suggestions || !latInput || !lngInput || !mapElement) return;
+
+    const localPlaces = [
+        { name: "Delhi, India", lat: "28.6139", lon: "77.2090" },
+        { name: "Mumbai, Maharashtra, India", lat: "19.0760", lon: "72.8777" },
+        { name: "Bengaluru, Karnataka, India", lat: "12.9716", lon: "77.5946" },
+        { name: "Hyderabad, Telangana, India", lat: "17.3850", lon: "78.4867" },
+        { name: "Ahmedabad, Gujarat, India", lat: "23.0225", lon: "72.5714" },
+        { name: "Srinagar, Jammu and Kashmir, India", lat: "34.0837", lon: "74.7973" },
+        { name: "Chandigarh, India", lat: "30.7333", lon: "76.7794" },
+        { name: "Pune, Maharashtra, India", lat: "18.5204", lon: "73.8567" },
+        { name: "Kolkata, West Bengal, India", lat: "22.5726", lon: "88.3639" },
+        { name: "Chennai, Tamil Nadu, India", lat: "13.0827", lon: "80.2707" },
+        { name: "Jaipur, Rajasthan, India", lat: "26.9124", lon: "75.7873" },
+        { name: "Lucknow, Uttar Pradesh, India", lat: "26.8467", lon: "80.9462" },
+        { name: "Indore, Madhya Pradesh, India", lat: "22.7196", lon: "75.8577" },
+        { name: "Bhopal, Madhya Pradesh, India", lat: "23.2599", lon: "77.4126" },
+        { name: "Noida, Uttar Pradesh, India", lat: "28.5355", lon: "77.3910" },
+        { name: "Gurugram, Haryana, India", lat: "28.4595", lon: "77.0266" },
+        { name: "Rohini, Delhi, India", lat: "28.7383", lon: "77.0822" },
+        { name: "Vastrapur, Ahmedabad, Gujarat, India", lat: "23.0374", lon: "72.5293" },
+        { name: "Ghatlodiya, Ahmedabad, Gujarat, India", lat: "23.0677", lon: "72.5443" },
+        { name: "Rajbagh, Srinagar, Jammu and Kashmir, India", lat: "34.0666", lon: "74.8194" },
+        { name: "Lal Chowk, Srinagar, Jammu and Kashmir, India", lat: "34.0710", lon: "74.8097" },
+        { name: "Hazratbal, Srinagar, Jammu and Kashmir, India", lat: "34.1287", lon: "74.8391" }
+    ];
+
+    let map = null;
+    let marker = null;
+    let searchTimer = null;
+    let activePlaces = [];
+
+    function initMap() {
+        if (!window.L) return;
+
+        map = L.map(mapElement).setView([22.9734, 78.6569], 5);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "&copy; OpenStreetMap"
+        }).addTo(map);
+
+        map.on("click", async (event) => {
+            setLocation(event.latlng.lat, event.latlng.lng, "Custom map location");
+
+            try {
+                const response = await fetch(`/api/reverse-location?lat=${encodeURIComponent(event.latlng.lat)}&lon=${encodeURIComponent(event.latlng.lng)}`);
+                if (!response.ok) return;
+                const place = await response.json();
+                if (place.name) input.value = place.name;
+            } catch (err) {
+                console.log("Reverse location failed:", err);
+            }
+        });
+
+        setTimeout(() => map.invalidateSize(), 120);
+    }
+
+    function setLocation(lat, lon, name) {
+        const latNumber = Number(lat);
+        const lonNumber = Number(lon);
+
+        if (Number.isNaN(latNumber) || Number.isNaN(lonNumber)) return;
+
+        latInput.value = latNumber;
+        lngInput.value = lonNumber;
+        if (name) input.value = name;
+
+        if (!map) return;
+
+        if (!marker) {
+            marker = L.marker([latNumber, lonNumber], { draggable: true }).addTo(map);
+            marker.on("dragend", () => {
+                const position = marker.getLatLng();
+                latInput.value = position.lat;
+                lngInput.value = position.lng;
+            });
+        } else {
+            marker.setLatLng([latNumber, lonNumber]);
+        }
+
+        map.setView([latNumber, lonNumber], 16);
+    }
+
+    function localMatches(query) {
+        const normalized = query.toLowerCase();
+        const matches = localPlaces.filter((place) => place.name.toLowerCase().includes(normalized));
+        return matches.length ? matches : localPlaces.slice(0, 8);
+    }
+
+    function renderPlaces(places) {
+        activePlaces = places.filter((place) => place.name && place.lat && place.lon);
+        suggestions.innerHTML = "";
+        options.innerHTML = "";
+
+        activePlaces.forEach((place) => {
+            const option = document.createElement("option");
+            option.value = place.name;
+            options.appendChild(option);
+
+            const item = document.createElement("button");
+            item.type = "button";
+            item.className = "suggestion-item";
+
+            const title = document.createElement("strong");
+            title.textContent = place.name.split(",")[0];
+
+            const detail = document.createElement("span");
+            detail.textContent = place.name;
+
+            item.appendChild(title);
+            item.appendChild(detail);
+            item.addEventListener("mousedown", (event) => {
+                event.preventDefault();
+                setLocation(place.lat, place.lon, place.name);
+                suggestions.innerHTML = "";
+            });
+            suggestions.appendChild(item);
+        });
+
+        if (activePlaces[0] && (!latInput.value || !lngInput.value)) {
+            latInput.value = activePlaces[0].lat;
+            lngInput.value = activePlaces[0].lon;
+        }
+    }
+
+    async function searchLocations() {
+        const query = input.value.trim();
+
+        if (query.length < 2) {
+            suggestions.innerHTML = "";
+            options.innerHTML = "";
+            latInput.value = "";
+            lngInput.value = "";
+            return;
+        }
+
+        renderPlaces(localMatches(query));
+        clearTimeout(searchTimer);
+
+        searchTimer = setTimeout(async () => {
+            try {
+                const response = await fetch(`/api/location-search?q=${encodeURIComponent(query)}`);
+                if (!response.ok) return;
+                const places = await response.json();
+                if (Array.isArray(places) && places.length) renderPlaces(places);
+            } catch (err) {
+                console.log("Location search failed:", err);
+            }
+        }, 220);
+    }
+
+    input.addEventListener("input", searchLocations);
+    input.addEventListener("focus", searchLocations);
+    input.addEventListener("change", () => {
+        const selected = activePlaces.find((place) => place.name === input.value);
+        if (selected) setLocation(selected.lat, selected.lon, selected.name);
+    });
+
+    try {
+        initMap();
+    } catch (err) {
+        console.log("Map initialization failed:", err);
+    }
+});
 </script>
 
 {% endblock %}

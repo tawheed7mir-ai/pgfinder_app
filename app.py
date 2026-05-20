@@ -11,6 +11,7 @@ import secrets
 from urllib.parse import unquote, urlparse
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 try:
     import cloudinary
@@ -40,11 +41,13 @@ def load_env_file(path=".env"):
 load_env_file()
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") == "production"
+    SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") == "production",
+    PERMANENT_SESSION_LIFETIME=60 * 60 * 24 * 14
 )
 
 if os.environ.get("FLASK_ENV") == "production" and app.secret_key == "dev-only-change-me":
@@ -65,6 +68,7 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", 8 * 1024 * 1024))
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "avif"}
+MAX_LISTING_IMAGES = int(os.environ.get("MAX_LISTING_IMAGES", "8"))
 RENT_PERIODS = {"day", "week", "month"}
 PRICE_MONTHLY_SQL = """
 (
@@ -112,7 +116,19 @@ LOCATION_FALLBACKS = [
     {"name": "Chandigarh, India", "lat": "30.7333", "lon": "76.7794"},
     {"name": "Pune, Maharashtra, India", "lat": "18.5204", "lon": "73.8567"},
     {"name": "Kolkata, West Bengal, India", "lat": "22.5726", "lon": "88.3639"},
-    {"name": "Chennai, Tamil Nadu, India", "lat": "13.0827", "lon": "80.2707"}
+    {"name": "Chennai, Tamil Nadu, India", "lat": "13.0827", "lon": "80.2707"},
+    {"name": "Jaipur, Rajasthan, India", "lat": "26.9124", "lon": "75.7873"},
+    {"name": "Lucknow, Uttar Pradesh, India", "lat": "26.8467", "lon": "80.9462"},
+    {"name": "Indore, Madhya Pradesh, India", "lat": "22.7196", "lon": "75.8577"},
+    {"name": "Bhopal, Madhya Pradesh, India", "lat": "23.2599", "lon": "77.4126"},
+    {"name": "Noida, Uttar Pradesh, India", "lat": "28.5355", "lon": "77.3910"},
+    {"name": "Gurugram, Haryana, India", "lat": "28.4595", "lon": "77.0266"},
+    {"name": "Rohini, Delhi, India", "lat": "28.7383", "lon": "77.0822"},
+    {"name": "Vastrapur, Ahmedabad, Gujarat, India", "lat": "23.0374", "lon": "72.5293"},
+    {"name": "Ghatlodiya, Ahmedabad, Gujarat, India", "lat": "23.0677", "lon": "72.5443"},
+    {"name": "Rajbagh, Srinagar, Jammu and Kashmir, India", "lat": "34.0666", "lon": "74.8194"},
+    {"name": "Lal Chowk, Srinagar, Jammu and Kashmir, India", "lat": "34.0710", "lon": "74.8097"},
+    {"name": "Hazratbal, Srinagar, Jammu and Kashmir, India", "lat": "34.1287", "lon": "74.8391"}
 ]
 
 
@@ -134,6 +150,81 @@ def clean_rent_period(value):
         return "month"
 
     return value
+
+
+def render_app_error(title, message, status_code=400, action_label="Back home", action_href="/"):
+    return render_template(
+        "error.html",
+        title=title,
+        message=message,
+        action_label=action_label,
+        action_href=action_href
+    ), status_code
+
+
+def parse_positive_price(value):
+    try:
+        price = int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+    if price <= 0:
+        return None
+
+    return str(price)
+
+
+def parse_coordinate(value, minimum, maximum):
+    try:
+        coordinate = float(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+    if coordinate < minimum or coordinate > maximum:
+        return None
+
+    return str(coordinate)
+
+
+def clean_listing_form(form, fallback_latitude=None, fallback_longitude=None):
+    title = (form.get("title") or "").strip()
+    price = parse_positive_price(form.get("price"))
+    rent_period = clean_rent_period(form.get("rent_period"))
+    room_type = (form.get("room_type") or "").strip()
+    sharing_type = (form.get("sharing_type") or "").strip()
+    amenities = ",".join(form.getlist("amenities"))
+    location = (form.get("location") or "").strip()
+    description = (form.get("description") or "").strip()
+    latitude = parse_coordinate(form.get("latitude") or fallback_latitude, -90, 90)
+    longitude = parse_coordinate(form.get("longitude") or fallback_longitude, -180, 180)
+
+    if not title:
+        return None, "Listing title is required."
+
+    if not price:
+        return None, "Rent amount must be a positive number."
+
+    if not location:
+        return None, "Location is required."
+
+    if not latitude or not longitude:
+        return None, "Please select a location suggestion or click the map so coordinates are saved."
+
+    if not description:
+        return None, "Description is required."
+
+    return {
+        "title": title,
+        "price": price,
+        "rent_period": rent_period,
+        "room_type": room_type,
+        "sharing_type": sharing_type,
+        "amenities": amenities,
+        "location": location,
+        "description": description,
+        "latitude": latitude,
+        "longitude": longitude
+    }, None
 
 
 # =========================
@@ -170,6 +261,22 @@ def db_config(include_database=True):
 def validate_database_name(database_name):
     if not database_name or not all(char.isalnum() or char == "_" for char in database_name):
         raise RuntimeError("Database name may only contain letters, numbers, and underscores")
+
+
+def create_index_if_missing(cursor, table_name, index_name, columns):
+    cursor.execute("""
+        SELECT COUNT(*) AS total
+        FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = %s
+        AND INDEX_NAME = %s
+    """, (table_name, index_name))
+
+    if cursor.fetchone()["total"]:
+        return
+
+    column_sql = ", ".join(columns)
+    cursor.execute(f"CREATE INDEX {index_name} ON {table_name} ({column_sql})")
 
 
 def db():
@@ -262,6 +369,15 @@ def ensure_database_schema():
         )
     """)
 
+    create_index_if_missing(cursor, "users", "idx_users_role", ["role"])
+    create_index_if_missing(cursor, "listings", "idx_listings_owner", ["owner_id"])
+    create_index_if_missing(cursor, "listings", "idx_listings_location", ["location(120)"])
+    create_index_if_missing(cursor, "listing_images", "idx_listing_images_listing", ["listing_id"])
+    create_index_if_missing(cursor, "requests", "idx_requests_listing", ["listing_id"])
+    create_index_if_missing(cursor, "requests", "idx_requests_user", ["user_id"])
+    create_index_if_missing(cursor, "requests", "idx_requests_status", ["status"])
+    create_index_if_missing(cursor, "contact_messages", "idx_contact_messages_user", ["user_id"])
+
     conn.commit()
     conn.close()
 
@@ -304,6 +420,39 @@ def set_security_headers(response):
     return response
 
 
+@app.errorhandler(404)
+def not_found(_error):
+    return render_app_error(
+        "Page not found",
+        "The page you opened does not exist or may have moved.",
+        404,
+        "Back home",
+        "/"
+    )
+
+
+@app.errorhandler(413)
+def upload_too_large(_error):
+    return render_app_error(
+        "Upload too large",
+        "Please upload smaller images and try again.",
+        413,
+        "Back",
+        urlparse(request.referrer or "").path if is_safe_redirect_path(urlparse(request.referrer or "").path) else "/"
+    )
+
+
+@app.errorhandler(500)
+def server_error(_error):
+    return render_app_error(
+        "Something went wrong",
+        "Please try again. If this keeps happening, contact support.",
+        500,
+        "Back home",
+        "/"
+    )
+
+
 def allowed_image(filename):
     if not filename or "." not in filename:
         return False
@@ -320,6 +469,9 @@ def save_uploaded_image(file):
         abort(400, "Only JPG, PNG, WEBP, and AVIF images are allowed")
 
     filename = secure_filename(file.filename)
+    if not filename:
+        abort(400, "Invalid image filename")
+
     name, extension = os.path.splitext(filename)
 
     if CLOUDINARY_ENABLED:
@@ -434,6 +586,10 @@ def is_safe_redirect_path(path):
     return bool(path) and path.startswith("/") and not path.startswith("//")
 
 
+def wants_json_response():
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+
+
 def calculate_distance_km(lat1, lon1, lat2, lon2):
     earth_radius_km = 6371
 
@@ -451,6 +607,31 @@ def calculate_distance_km(lat1, lon1, lat2, lon2):
     )
 
     return earth_radius_km * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+@app.route("/healthz")
+def healthz():
+    status = {
+        "ok": True,
+        "database": "unknown",
+        "cloudinary": "configured" if CLOUDINARY_ENABLED else "missing",
+        "environment": os.environ.get("FLASK_ENV", "development")
+    }
+
+    try:
+        conn = db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT 1 AS ok")
+        cursor.fetchone()
+        conn.close()
+        status["database"] = "ok"
+    except Exception as err:
+        status["ok"] = False
+        status["database"] = "error"
+        status["database_error"] = err.__class__.__name__
+
+    http_status = 200 if status["ok"] else 503
+    return jsonify(status), http_status
 
 
 def ensure_contact_messages_user_id():
@@ -1022,8 +1203,17 @@ def signup():
         name = request.form["name"].strip()
         email = request.form["email"].strip().lower()
         password = request.form["password"]
-        phone = request.form["phone"]
+        phone = request.form["phone"].strip()
         role = request.form["role"]
+
+        if not name or not email or not phone or not password:
+            return render_template("signup.html", error="All fields are required."), 400
+
+        if "@" not in email or "." not in email:
+            return render_template("signup.html", error="Enter a valid email address."), 400
+
+        if len(password) < 8:
+            return render_template("signup.html", error="Password must be at least 8 characters."), 400
 
         if role not in ("user", "owner"):
             role = "user"
@@ -1172,83 +1362,97 @@ def add_listing():
     # IMPORTANT FIX
     if not user:
         conn.close()
-        return "❌ User not found"
+        return render_app_error("Account not found", "Please log in again to continue.", 404, "Login", "/login")
 
     # OWNER CHECK
     if user["role"] not in ("owner", "admin"):
 
         conn.close()
 
-        return """
-        <h2 style="text-align:center;margin-top:100px;color:red;">
-            ❌ Only Owners Can Add Listings
-        </h2>
-        """
+        return render_app_error(
+            "Owner access required",
+            "Only owner accounts can publish PG listings.",
+            403,
+            "Go back home",
+            "/"
+        )
 
     # POST
     if request.method == "POST":
 
-        title = request.form["title"]
-        price = request.form["price"]
-        rent_period = clean_rent_period(request.form.get("rent_period"))
-        room_type = request.form.get("room_type", "")
-        sharing_type = request.form.get("sharing_type", "")
-        amenities = ",".join(request.form.getlist("amenities"))
-        location = request.form["location"]
-        description = request.form["description"]
+        listing_form, form_error = clean_listing_form(request.form)
         files = [
             file for file in request.files.getlist("images")
             if file and file.filename
         ]
 
-        latitude = request.form.get("latitude")
-        longitude = request.form.get("longitude")
-
-        if not latitude or not longitude:
-
+        if form_error:
             conn.close()
+            return render_app_error("Listing needs one fix", form_error, 400, "Back to Add Listing", "/add")
 
-            return "❌ Please select location from map"
+        if not files:
+            conn.close()
+            return render_app_error("Photos required", "Please upload at least one clear PG image.", 400, "Back to Add Listing", "/add")
 
-        cursor.execute("""
-            INSERT INTO listings
-            (
-                title, price, rent_period, room_type, sharing_type, amenities,
-                location, description, latitude, longitude, owner_id
+        if len(files) > MAX_LISTING_IMAGES:
+            conn.close()
+            return render_app_error(
+                "Too many photos",
+                f"Please upload up to {MAX_LISTING_IMAGES} images per listing.",
+                400,
+                "Back to Add Listing",
+                "/add"
             )
 
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            title,
-            price,
-            rent_period,
-            room_type,
-            sharing_type,
-            amenities,
-            location,
-            description,
-            latitude,
-            longitude,
-            session["user_id"]
-        ))
+        saved_images = []
 
-        conn.commit()
+        try:
+            cursor.execute("""
+                INSERT INTO listings
+                (
+                    title, price, rent_period, room_type, sharing_type, amenities,
+                    location, description, latitude, longitude, owner_id
+                )
 
-        listing_id = cursor.lastrowid
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                listing_form["title"],
+                listing_form["price"],
+                listing_form["rent_period"],
+                listing_form["room_type"],
+                listing_form["sharing_type"],
+                listing_form["amenities"],
+                listing_form["location"],
+                listing_form["description"],
+                listing_form["latitude"],
+                listing_form["longitude"],
+                session["user_id"]
+            ))
 
-        for file in files:
+            listing_id = cursor.lastrowid
 
-            filename = save_uploaded_image(file)
+            for file in files:
+                filename = save_uploaded_image(file)
 
-            if filename:
-                cursor.execute("""
-                    INSERT INTO listing_images
-                    (listing_id, image)
+                if filename:
+                    saved_images.append(filename)
+                    cursor.execute("""
+                        INSERT INTO listing_images
+                        (listing_id, image)
 
-                    VALUES (%s,%s)
-                """, (listing_id, filename))
+                        VALUES (%s,%s)
+                    """, (listing_id, filename))
 
-        conn.commit()
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
+            for image in saved_images:
+                delete_stored_image(image)
+
+            conn.close()
+            raise
+
         conn.close()
 
         return redirect("/")
@@ -1508,7 +1712,7 @@ def listing_detail(id):
     # IMPORTANT FIX
     if not listing:
         conn.close()
-        return "❌ Listing not found"
+        return render_app_error("Listing not found", "This listing is no longer available.", 404, "Browse listings", "/find")
 
     cursor.execute("""
         SELECT * FROM listing_images
@@ -1866,10 +2070,17 @@ def accept_request(id):
             AND listings.owner_id=%s
         """, (id, session["user_id"]))
 
+    updated = cursor.rowcount
     conn.commit()
     conn.close()
 
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if not updated:
+        if wants_json_response():
+            return jsonify({"error": "Request not found or not allowed"}), 404
+
+        return redirect("/requests")
+
+    if wants_json_response():
         return jsonify({"status": "accepted"})
 
     return redirect("/requests")
@@ -1902,13 +2113,20 @@ def reject_request(id):
             AND listings.owner_id=%s
         """, (id, session["user_id"]))
 
+    updated = cursor.rowcount
     conn.commit()
     conn.close()
 
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if not updated:
+        if wants_json_response():
+            return jsonify({"error": "Request not found or not allowed"}), 404
+
+        return redirect("/requests")
+
+    if wants_json_response():
         return jsonify({"status": "rejected"})
 
-    return "", 204
+    return redirect("/requests")
 
 
 
@@ -2310,6 +2528,21 @@ def send_request(listing_id):
     conn = db()
     cursor = conn.cursor(dictionary=True)
 
+    cursor.execute("""
+        SELECT id, owner_id
+        FROM listings
+        WHERE id=%s
+    """, (listing_id,))
+    listing = cursor.fetchone()
+
+    if not listing:
+        conn.close()
+        return render_app_error("Listing not found", "This listing is no longer available.", 404, "Browse listings", "/find")
+
+    if listing["owner_id"] == session["user_id"]:
+        conn.close()
+        return redirect(f"/listing/{listing_id}?request=own-listing")
+
     # CHECK EXISTING REQUEST
     cursor.execute("""
         SELECT * FROM requests
@@ -2406,24 +2639,6 @@ def edit_listing(id):
         conn.close()
         return redirect("/")
 
-    # LISTING NOT FOUND
-    if not listing:
-
-        conn.close()
-
-        return "❌ Listing not found"
-
-    # SECURITY CHECK
-    if not is_admin() and listing["owner_id"] != session["user_id"]:
-
-        conn.close()
-
-        return """
-        <h2 style='text-align:center;margin-top:100px;color:red;'>
-            ❌ Unauthorized Access
-        </h2>
-        """
-
     cursor.execute("""
         SELECT *
         FROM listing_images
@@ -2435,66 +2650,93 @@ def edit_listing(id):
     # UPDATE
     if request.method == "POST":
 
-        title = request.form["title"]
-        price = request.form["price"]
-        rent_period = clean_rent_period(request.form.get("rent_period"))
-        room_type = request.form.get("room_type", "")
-        sharing_type = request.form.get("sharing_type", "")
-        amenities = ",".join(request.form.getlist("amenities"))
-        location = request.form["location"]
-        description = request.form["description"]
+        listing_form, form_error = clean_listing_form(
+            request.form,
+            listing.get("latitude"),
+            listing.get("longitude")
+        )
         files = [
             file for file in request.files.getlist("images")
             if file and file.filename
         ]
 
-        cursor.execute("""
-            UPDATE listings
+        if form_error:
+            conn.close()
+            return render_app_error("Listing needs one fix", form_error, 400, "Back to Edit Listing", f"/edit/{id}")
 
-            SET
-            title=%s,
-            price=%s,
-            rent_period=%s,
-            room_type=%s,
-            sharing_type=%s,
-            amenities=%s,
-            location=%s,
-            description=%s
+        if len(files) > MAX_LISTING_IMAGES:
+            conn.close()
+            return render_app_error(
+                "Too many photos",
+                f"Please upload up to {MAX_LISTING_IMAGES} images per listing.",
+                400,
+                "Back to Edit Listing",
+                f"/edit/{id}"
+            )
 
-            WHERE id=%s
-        """, (
-            title,
-            price,
-            rent_period,
-            room_type,
-            sharing_type,
-            amenities,
-            location,
-            description,
-            id
-        ))
+        saved_images = []
 
-        if files:
-            delete_listing_images_from_storage(cursor, id)
-
+        try:
             cursor.execute("""
-                DELETE FROM listing_images
-                WHERE listing_id=%s
-            """, (id,))
+                UPDATE listings
 
-            for file in files:
+                SET
+                title=%s,
+                price=%s,
+                rent_period=%s,
+                room_type=%s,
+                sharing_type=%s,
+                amenities=%s,
+                location=%s,
+                description=%s,
+                latitude=%s,
+                longitude=%s
 
-                filename = save_uploaded_image(file)
+                WHERE id=%s
+            """, (
+                listing_form["title"],
+                listing_form["price"],
+                listing_form["rent_period"],
+                listing_form["room_type"],
+                listing_form["sharing_type"],
+                listing_form["amenities"],
+                listing_form["location"],
+                listing_form["description"],
+                listing_form["latitude"],
+                listing_form["longitude"],
+                id
+            ))
 
-                if filename:
-                    cursor.execute("""
-                        INSERT INTO listing_images
-                        (listing_id, image)
+            if files:
+                delete_listing_images_from_storage(cursor, id)
 
-                        VALUES (%s,%s)
-                    """, (id, filename))
+                cursor.execute("""
+                    DELETE FROM listing_images
+                    WHERE listing_id=%s
+                """, (id,))
 
-        conn.commit()
+                for file in files:
+                    filename = save_uploaded_image(file)
+
+                    if filename:
+                        saved_images.append(filename)
+                        cursor.execute("""
+                            INSERT INTO listing_images
+                            (listing_id, image)
+
+                            VALUES (%s,%s)
+                        """, (id, filename))
+
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
+            for image in saved_images:
+                delete_stored_image(image)
+
+            conn.close()
+            raise
+
         conn.close()
 
         return redirect("/my-listings")
