@@ -1,4 +1,4 @@
-// HERO SLIDER
+// Home hero slider: rotates the active hero background image every few seconds.
 
 const slides =
 document.querySelectorAll(".hero-slide");
@@ -24,7 +24,7 @@ function changeSlide(){
 setInterval(changeSlide,4000);
 
 
-// DELETE FUNCTION
+// Delete confirmation: shows a SweetAlert prompt, then submits a POST form with CSRF.
 
 function deleteListing(id){
 
@@ -66,7 +66,7 @@ function deleteListing(id){
 
 }
 
-
+// Legacy category filter: fetches category results and replaces the listing container.
 async function filterCategory(name){
 
     const res = await fetch(`/api/category/${name}`);
@@ -110,7 +110,7 @@ async function filterCategory(name){
     });
 }
 
-
+// Listing image slider: moves between images inside one listing card.
 function changeSlide(button,direction){
 
     const imageBox =

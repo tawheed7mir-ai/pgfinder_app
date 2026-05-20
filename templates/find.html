@@ -198,6 +198,19 @@
             <div class="container" id="listing-container">
                 {% include "listings_partial.html" %}
             </div>
+
+            <div class="find-view-more-container" id="find-view-more-container">
+                <button
+                    type="button"
+                    class="view-more-btn find-view-more-btn"
+                    id="find-view-more-btn"
+                    data-total="{{ total }}"
+                    data-batch-size="{{ find_batch_size|default(3) }}"
+                    data-next-offset="{{ rendered_count|default(data|length) }}">
+                    <i class="fa-solid fa-list"></i>
+                    View more listings
+                </button>
+            </div>
         </section>
 
     </section>
@@ -210,6 +223,72 @@ const nearbyStatus = document.getElementById("nearby-status");
 const nearbyForm = document.getElementById("nearby-form");
 const nearbyLat = document.getElementById("nearby-lat");
 const nearbyLng = document.getElementById("nearby-lng");
+
+function setupFindViewMore() {
+    const container = document.getElementById("listing-container");
+    const moreBox = document.getElementById("find-view-more-container");
+    const moreBtn = document.getElementById("find-view-more-btn");
+
+    if (!container || !moreBox || !moreBtn) return;
+
+    const total = Number(moreBtn.dataset.total || 0);
+    const batchSize = Number(moreBtn.dataset.batchSize || 3);
+    let nextOffset = Number(moreBtn.dataset.nextOffset || container.querySelectorAll(".card").length);
+    const initialHtml = container.innerHTML;
+
+    const renderButton = () => {
+        const atEnd = nextOffset >= total;
+        moreBox.classList.toggle("is-hidden", total <= batchSize);
+        moreBtn.innerHTML = atEnd
+            ? `<i class="fa-solid fa-compress"></i> View less listings`
+            : `<i class="fa-solid fa-list"></i> View more listings`;
+        moreBtn.classList.toggle("is-view-less", atEnd);
+    };
+
+    moreBtn.onclick = async () => {
+        if (nextOffset >= total) {
+            container.innerHTML = initialHtml;
+            nextOffset = batchSize;
+            moreBtn.dataset.nextOffset = String(nextOffset);
+            renderButton();
+            document.getElementById("listings-section")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            return;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        params.set("offset", String(nextOffset));
+
+        try {
+            moreBtn.disabled = true;
+            container.classList.add("loading-listings");
+
+            const res = await fetch(`/find?${params.toString()}`, {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+
+            if (!res.ok) {
+                throw new Error("Unable to load more listings");
+            }
+
+            container.insertAdjacentHTML("beforeend", await res.text());
+            nextOffset = Number(res.headers.get("X-Next-Offset") || (nextOffset + batchSize));
+            moreBtn.dataset.nextOffset = String(nextOffset);
+            renderButton();
+        } catch (error) {
+            window.location.href = `/find?${params.toString()}#listings-section`;
+        } finally {
+            moreBtn.disabled = false;
+            container.classList.remove("loading-listings");
+        }
+    };
+
+    renderButton();
+}
+
+setupFindViewMore();
 
 function setHiddenField(form, name, value) {
     if (!form) return;
@@ -275,6 +354,16 @@ if (nearbyBtn) {
                             <span>${Number(totalCount) === 1 ? "match" : "matches"}</span>
                         `;
                     }
+
+                    const nextOffset = res.headers.get("X-Next-Offset");
+                    const moreBtn = document.getElementById("find-view-more-btn");
+
+                    if (moreBtn) {
+                        moreBtn.dataset.total = totalCount || "0";
+                        moreBtn.dataset.nextOffset = nextOffset || "0";
+                    }
+
+                    setupFindViewMore();
 
                     setHiddenField(filterForm, "nearby", "1");
                     setHiddenField(filterForm, "lat", nearbyLat.value);

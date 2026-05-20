@@ -120,28 +120,28 @@
 </section>
 
 <section class="home-category-cards" aria-label="Browse by category">
-    <a href="/find#listings-section">
+    <a href="/#listings-section">
         <i class="fa-solid fa-fire"></i>
         <span>
             <strong>Trending</strong>
             <small>Fresh stays</small>
         </span>
     </a>
-    <a href="/find?category=budget#listings-section">
+    <a href="/?category=budget#listings-section">
         <i class="fa-solid fa-wallet"></i>
         <span>
             <strong>Budget</strong>
             <small>Value picks</small>
         </span>
     </a>
-    <a href="/find?category=premium#listings-section">
+    <a href="/?category=premium#listings-section">
         <i class="fa-solid fa-star"></i>
         <span>
             <strong>Premium</strong>
             <small>Better comfort</small>
         </span>
     </a>
-    <a href="/find?category=luxury#listings-section">
+    <a href="/?category=luxury#listings-section">
         <i class="fa-solid fa-bed"></i>
         <span>
             <strong>Luxury</strong>
@@ -168,16 +168,21 @@
         {% include "listings_partial.html" %}
     </div>
 
-    <div class="listing-scroll-hint" id="listing-scroll-hint" aria-hidden="true">
+    <button type="button" class="listing-scroll-hint" id="listing-scroll-hint" aria-label="Scroll listings">
         <span>Scroll</span>
         <i class="fa-solid fa-arrow-right"></i>
-    </div>
+    </button>
 
 </section>
 
-{% if total > 4 and not filters_active and not nearby_active and not category_filter %}
+{% if total > 4 %}
 <div class="view-more-container">
-    <button type="button" class="view-more-btn expand-listings-trigger">
+    <button
+        type="button"
+        class="view-more-btn expand-listings-trigger"
+        data-total="{{ total }}"
+        data-batch-size="{{ home_batch_size|default(4) }}"
+        data-next-offset="{{ rendered_count|default(data|length) }}">
         <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
         View More Listings
     </button>
@@ -462,14 +467,40 @@
 </section>
 
 <script>
+// Home View More: requests the next 4 cards from Flask and appends them.
 async function expandListings(event) {
     event.preventDefault();
 
     const trigger = event.currentTarget;
     const container = document.getElementById("listing-container");
-    const viewMoreContainer = document.querySelector(".view-more-container");
+    const batchSize = Number(trigger.dataset.batchSize || 4);
+    const total = Number(trigger.dataset.total || 0);
+    let nextOffset = Number(trigger.dataset.nextOffset || container?.querySelectorAll(".card").length || 0);
 
     if (!container) return;
+
+    if (!container.dataset.initialHtml) {
+        container.dataset.initialHtml = container.innerHTML;
+    }
+
+    const renderHomeButton = () => {
+        const atEnd = nextOffset >= total;
+        trigger.innerHTML = atEnd
+            ? `<i class="fa-solid fa-compress"></i> View Less Listings`
+            : `<i class="fa-solid fa-up-right-and-down-left-from-center"></i> View More Listings`;
+        trigger.classList.toggle("is-view-less", atEnd);
+    };
+
+    if (nextOffset >= total) {
+        container.innerHTML = container.dataset.initialHtml;
+        container.classList.remove("expanded-listings");
+        nextOffset = batchSize;
+        trigger.dataset.nextOffset = String(nextOffset);
+        renderHomeButton();
+        document.getElementById("listings-section")
+            .scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+    }
 
     trigger.setAttribute("aria-busy", "true");
     trigger.classList.add("loading");
@@ -479,7 +510,10 @@ async function expandListings(event) {
     trigger.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Loading listings`;
 
     try {
-        const res = await fetch("/all-listings", {
+        const params = new URLSearchParams(window.location.search);
+        params.set("offset", String(nextOffset));
+
+        const res = await fetch(`/?${params.toString()}`, {
             headers: {
                 "X-Requested-With": "XMLHttpRequest"
             }
@@ -489,13 +523,19 @@ async function expandListings(event) {
             throw new Error("Unable to load listings");
         }
 
-        container.innerHTML = await res.text();
+        container.insertAdjacentHTML("beforeend", await res.text());
         container.classList.add("expanded-listings");
+        container.scrollLeft = 0;
+        nextOffset = Number(res.headers.get("X-Next-Offset") || (nextOffset + batchSize));
+        trigger.dataset.nextOffset = String(nextOffset);
 
-        if (viewMoreContainer) {
-            viewMoreContainer.remove();
+        const listingScrollHint = document.getElementById("listing-scroll-hint");
+        if (listingScrollHint) {
+            listingScrollHint.classList.add("is-hidden");
+            listingScrollHint.disabled = true;
         }
 
+        renderHomeButton();
         document.getElementById("listings-section")
             .scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
@@ -504,6 +544,8 @@ async function expandListings(event) {
         trigger.removeAttribute("aria-busy");
     } finally {
         container.classList.remove("loading-listings");
+        trigger.classList.remove("loading");
+        trigger.removeAttribute("aria-busy");
     }
 }
 
@@ -512,7 +554,7 @@ document.querySelectorAll(".expand-listings-trigger").forEach((trigger) => {
 });
 </script>
 <script>
-
+// Hero text/media animation: rotates hero images and subtitle lines on the Home page.
 const heroSlides = document.querySelectorAll(".hero-slide");
 const heroSubtitle = document.getElementById("hero-subtitle");
 
@@ -631,6 +673,7 @@ setInterval(swapHeroSubtitle, 3000);
 </script>
 
 <script>
+// Home search action animations: adds desktop-only movement to the search buttons.
 document.addEventListener("DOMContentLoaded", () => {
     const actionButtons = document.querySelectorAll(".home-search-actions button, .home-search-actions a");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -699,6 +742,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 <script>
+// Workflow section animation: reveals the "how it works" cards when they enter view.
 document.addEventListener("DOMContentLoaded", () => {
     const workflowSection = document.querySelector(".workflow-section");
     const workflowHead = document.querySelector(".workflow-head");
@@ -814,6 +858,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 <script>
+// Discovery strip rotator: cycles short helpful phrases above the Home search form.
 const discoveryRotator = document.getElementById("discovery-rotator");
 const discoveryPhrases = [
     "Find stays near campus.",
@@ -856,6 +901,7 @@ setInterval(swapDiscoveryPhrase, 2600);
 </script>
 
 <script>
+// Home search and nearby actions: builds URLs for search and location-based discovery.
 const homeNearbyBtn = document.getElementById("home-nearby-btn");
 const homeNearbyStatus = document.getElementById("home-nearby-status");
 const homeSearchForm = document.getElementById("home-search-form");
@@ -922,24 +968,84 @@ if (homeNearbyBtn) {
 
 const listingContainer = document.getElementById("listing-container");
 const listingScrollHint = document.getElementById("listing-scroll-hint");
+const listingsSection = document.getElementById("listings-section");
 
 if (listingContainer && listingScrollHint) {
-    const hideListingHint = () => {
-        listingScrollHint.classList.add("is-hidden");
-        setTimeout(() => listingScrollHint.remove(), 260);
+    // Listing scroll hint: hides once the user reaches the final card in the mobile row.
+    const syncListingHint = () => {
+        const canScroll = listingContainer.scrollWidth > listingContainer.clientWidth + 8;
+        const reachedEnd = listingContainer.scrollLeft + listingContainer.clientWidth >= listingContainer.scrollWidth - 10;
+        const shouldHide = !canScroll || reachedEnd;
+        listingScrollHint.classList.toggle("is-hidden", shouldHide);
+        listingScrollHint.disabled = shouldHide;
     };
 
-    if (listingContainer.scrollWidth <= listingContainer.clientWidth + 8) {
-        listingScrollHint.remove();
-    } else {
-        listingContainer.addEventListener("scroll", () => {
-            if (listingContainer.scrollLeft > 24) hideListingHint();
-        }, { passive: true });
-        listingContainer.addEventListener("touchstart", hideListingHint, { passive: true, once: true });
-        listingContainer.addEventListener("wheel", hideListingHint, { passive: true, once: true });
-        listingContainer.addEventListener("pointerdown", hideListingHint, { passive: true, once: true });
-    }
+    syncListingHint();
+    window.addEventListener("resize", syncListingHint);
+    listingContainer.addEventListener("scroll", syncListingHint, { passive: true });
+
+    listingScrollHint.addEventListener("click", () => {
+        listingContainer.scrollBy({
+            left: Math.max(260, listingContainer.clientWidth * 0.82),
+            behavior: "smooth"
+        });
+    });
 }
+
+// Home category filters: load matching listings in place, then scroll to the listing section.
+document.querySelectorAll(".home-category-cards a").forEach((categoryLink) => {
+    categoryLink.addEventListener("click", async (event) => {
+        const url = new URL(categoryLink.href);
+
+        if (url.pathname !== "/" || !listingContainer || !listingsSection) return;
+
+        event.preventDefault();
+
+        listingContainer.classList.add("loading-listings");
+
+        try {
+            const res = await fetch(`${url.pathname}${url.search}`, {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+
+            if (!res.ok) {
+                throw new Error("Unable to load category listings");
+            }
+
+            listingContainer.innerHTML = await res.text();
+            listingContainer.scrollLeft = 0;
+            listingContainer.classList.remove("expanded-listings");
+            listingContainer.dataset.initialHtml = listingContainer.innerHTML;
+
+            const viewMoreContainer = document.querySelector(".view-more-container");
+            const viewMoreTrigger = document.querySelector(".expand-listings-trigger");
+            const totalCount = Number(res.headers.get("X-Total-Count") || 0);
+            const nextOffset = Number(res.headers.get("X-Next-Offset") || listingContainer.querySelectorAll(".card").length);
+
+            if (viewMoreContainer && viewMoreTrigger) {
+                viewMoreContainer.style.display = totalCount > nextOffset ? "" : "none";
+                viewMoreTrigger.dataset.total = String(totalCount);
+                viewMoreTrigger.dataset.nextOffset = String(nextOffset);
+                viewMoreTrigger.dataset.batchSize = viewMoreTrigger.dataset.batchSize || "4";
+                viewMoreTrigger.innerHTML = `<i class="fa-solid fa-up-right-and-down-left-from-center"></i> View More Listings`;
+                viewMoreTrigger.classList.remove("is-view-less");
+            }
+
+            window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash || "#listings-section"}`);
+            listingsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+            if (listingScrollHint) {
+                requestAnimationFrame(syncListingHint);
+            }
+        } catch (error) {
+            window.location.href = categoryLink.href;
+        } finally {
+            listingContainer.classList.remove("loading-listings");
+        }
+    });
+});
 </script>
 
 {% endblock %}

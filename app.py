@@ -609,6 +609,7 @@ def calculate_distance_km(lat1, lon1, lat2, lon2):
     return earth_radius_km * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+# Health check route used by Railway/deploy platforms to confirm the app is alive.
 @app.route("/healthz")
 def healthz():
     status = {
@@ -828,6 +829,7 @@ def fallback_location_results(query):
     ]
 
 
+# Location autocomplete API used by listing forms and search inputs.
 @app.route("/api/location-search")
 def location_search():
 
@@ -877,6 +879,7 @@ def location_search():
     return jsonify(results or fallback_location_results(query))
 
 
+# Reverse geocoding API that turns map coordinates into a readable place name.
 @app.route("/api/reverse-location")
 def reverse_location():
 
@@ -921,6 +924,7 @@ def reverse_location():
 # =========================
 # HOME
 # =========================
+# Main browsing route: renders Home at "/" and Advanced Find at "/find" with shared filtering logic.
 @app.route("/")
 @app.route("/find")
 def home():
@@ -1153,7 +1157,19 @@ def home():
     )
 
     is_find_page = request.path == "/find"
-    limited_data = data if is_find_page or filters_active or nearby_active else data[:4]
+    find_batch_size = 3
+    home_batch_size = 4
+    try:
+        listing_offset = max(0, int(request.args.get("offset", "0")))
+    except ValueError:
+        listing_offset = 0
+
+    if is_find_page:
+        limited_data = data[listing_offset:listing_offset + find_batch_size]
+    elif request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        limited_data = data[listing_offset:listing_offset + home_batch_size]
+    else:
+        limited_data = data[:home_batch_size]
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         response = make_response(render_template(
@@ -1161,6 +1177,7 @@ def home():
             data=limited_data
         ))
         response.headers["X-Total-Count"] = str(len(data))
+        response.headers["X-Next-Offset"] = str(listing_offset + len(limited_data))
         return response
 
     return render_template(
@@ -1182,6 +1199,9 @@ def home():
         sort=sort,
         amenities=amenities,
         filters_active=filters_active,
+        find_batch_size=find_batch_size,
+        home_batch_size=home_batch_size,
+        rendered_count=len(limited_data),
 
         user=user,
 
@@ -1193,6 +1213,7 @@ def home():
 # =========================
 # SIGNUP
 # =========================
+# Signup route: creates a user/owner account and starts a logged-in session.
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
 
@@ -1247,6 +1268,7 @@ def signup():
 # =========================
 # LOGIN
 # =========================
+# Login route: validates credentials, stores session data, and initializes notifications.
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 
@@ -1326,6 +1348,7 @@ def login():
 # =========================
 # LOGOUT
 # =========================
+# Logout route: clears the current session and returns the user to the home page.
 @app.route('/logout')
 def logout():
 
@@ -1340,6 +1363,7 @@ def logout():
 # =========================
 # ADD LISTING
 # =========================
+# Add listing route: owners/admins create a new property with filters, location, and uploaded images.
 @app.route("/add", methods=["GET", "POST"])
 def add_listing():
 
@@ -1464,6 +1488,7 @@ def add_listing():
 # =========================
 # CATEGORY FILTER
 # =========================
+# Category route: shows listings filtered by a named category such as budget, premium, or luxury.
 @app.route("/category/<name>")
 def category(name):
 
@@ -1616,6 +1641,7 @@ def category(name):
 # =========================
 # ALL LISTINGS
 # =========================
+# AJAX route for Home "View More": returns the full listing-card partial without reloading the page.
 @app.route("/all-listings")
 def all_listings():
 
@@ -1694,6 +1720,7 @@ def all_listings():
 # =========================
 # LISTING DETAIL
 # =========================
+# Listing detail route: shows one listing, its images, owner phone, map, and request state.
 @app.route("/listing/<int:id>")
 def listing_detail(id):
 
@@ -1763,6 +1790,7 @@ def listing_detail(id):
 # =========================
 # PROFILE PAGE
 # =========================
+# Profile route: shows the signed-in user's account details and activity snapshot.
 @app.route("/profile")
 def profile():
 
@@ -1807,6 +1835,7 @@ def profile():
 
     )
 
+# Owner listings route: lets owners/admins review and manage their own posted properties.
 @app.route("/my-listings")
 def my_listings():
 
@@ -1855,6 +1884,7 @@ def my_listings():
 
 # contacts
 
+# Contact route: saves support/contact messages and links them to the user when logged in.
 @app.route("/contact", methods=["GET", "POST"])
 def contact():
 
@@ -1933,6 +1963,7 @@ def contact():
 # =========================
 # REQUESTS PAGE
 # =========================
+# Owner request inbox: shows booking/contact requests received for the owner's listings.
 @app.route("/requests")
 def requests_page():
 
@@ -1999,6 +2030,7 @@ def requests_page():
     )
 
 
+# User request tracker: shows requests the current user has sent to listing owners.
 @app.route("/my-requests")
 def my_requests():
 
@@ -2043,6 +2075,7 @@ def my_requests():
     )
 
 
+# Accept request action: owner/admin marks one listing request as accepted.
 @app.route("/accept-request/<int:id>", methods=["POST"])
 def accept_request(id):
 
@@ -2086,6 +2119,7 @@ def accept_request(id):
     return redirect("/requests")
 
 
+# Reject request action: owner/admin marks one listing request as rejected.
 @app.route("/reject-request/<int:id>", methods=["POST"])
 def reject_request(id):
 
@@ -2131,6 +2165,7 @@ def reject_request(id):
 
 
 
+# Delete listing action: owner/admin removes a listing and its stored images.
 @app.route("/delete/<int:id>", methods=["POST"])
 def delete_listing(id):
 
@@ -2181,6 +2216,7 @@ def delete_listing(id):
     return redirect("/my-listings")
 
 
+# Admin dashboard route: summarizes users, listings, requests, and moderation signals.
 @app.route("/admin")
 def admin_dashboard():
 
@@ -2263,6 +2299,7 @@ def admin_dashboard():
     )
 
 
+# Admin role update action: changes a user's role between user, owner, and admin.
 @app.route("/admin/user/<int:id>/role", methods=["POST"])
 def admin_update_user_role(id):
 
@@ -2295,6 +2332,7 @@ def admin_update_user_role(id):
     return redirect("/admin")
 
 
+# Admin delete user action: removes a user and cleans up their related data safely.
 @app.route("/admin/delete-user/<int:id>", methods=["POST"])
 def admin_delete_user(id):
 
@@ -2351,6 +2389,7 @@ def admin_delete_user(id):
     return redirect("/admin")
 
 
+# Notification feed route: returns new counts/items for the navbar notification UI.
 @app.route("/notifications/feed")
 def notifications_feed():
 
@@ -2464,6 +2503,7 @@ def notifications_feed():
 
 
 
+# Edit profile route: lets a signed-in user update their name, phone, and password.
 @app.route("/edit-profile", methods=["GET", "POST"])
 def edit_profile():
 
@@ -2514,6 +2554,7 @@ def edit_profile():
 # =========================
 # SEND REQUEST
 # =========================
+# Send request action: user sends a booking/contact request for a specific listing.
 @app.route("/request/<int:listing_id>", methods=["POST"])
 def send_request(listing_id):
 
@@ -2612,6 +2653,7 @@ def send_request(listing_id):
 # =========================
 # EDIT LISTING
 # =========================
+# Edit listing route: owner/admin updates listing details, location, amenities, and images.
 @app.route("/edit/<int:id>", methods=["GET", "POST"])
 def edit_listing(id):
 

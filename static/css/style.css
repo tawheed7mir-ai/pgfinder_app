@@ -1,3 +1,5 @@
+/* GLOBAL RESET: removes browser default spacing and makes width calculations predictable. */
+
 *{
     margin:0;
     padding:0;
@@ -1223,7 +1225,8 @@ body{
 }
 
 
-/* ================= VIEW MORE BUTTON ================= */
+/* ================= VIEW MORE BUTTON =================
+   Draws attention to the "View More Listings" action and gives it hover/press feedback. */
 
 .view-more-container{
 
@@ -1269,10 +1272,11 @@ body{
     0 12px 30px rgba(255,56,92,0.35);
 
     transition:0.4s ease;
+    animation:viewMoreReminder 2.8s ease-in-out infinite;
 
 }
 
-/* SHINE EFFECT */
+/* View More shine layer: slides across the button on hover. */
 
 .view-more-btn::before{
 
@@ -1297,7 +1301,7 @@ body{
 
 }
 
-/* HOVER */
+/* View More hover: lifts the button so users notice it is clickable. */
 
 .view-more-btn:hover{
 
@@ -1306,13 +1310,14 @@ body{
     scale(1.05);
 
     gap:18px;
+    animation:none;
 
     box-shadow:
     0 22px 45px rgba(255,56,92,0.5);
 
 }
 
-/* MOVE SHINE */
+/* View More hover shine movement. */
 
 .view-more-btn:hover::before{
 
@@ -1320,7 +1325,7 @@ body{
 
 }
 
-/* CLICK */
+/* View More active state: small press-down feedback. */
 
 .view-more-btn:active{
 
@@ -1333,10 +1338,50 @@ button.view-more-btn{
     font:inherit;
 }
 
+@keyframes viewMoreReminder{
+    0%,
+    70%,
+    100%{
+        transform:translateY(0) scale(1);
+        box-shadow:0 12px 30px rgba(255,56,92,0.35);
+    }
+
+    82%{
+        transform:translateY(-3px) scale(1.025);
+        box-shadow:0 20px 42px rgba(255,56,92,0.48);
+    }
+}
+
 .expand-listings-trigger.loading,
 .loading-listings{
     opacity:0.72;
     pointer-events:none;
+}
+
+.listing-batch-hidden,
+.find-listing-hidden{
+    display:none !important;
+}
+
+.find-view-more-container{
+    display:flex;
+    justify-content:center;
+    padding:8px 0 18px;
+}
+
+.find-view-more-container.is-hidden{
+    display:none;
+}
+
+.find-view-more-btn{
+    min-height:44px;
+    padding:12px 24px;
+    font-size:13px;
+}
+
+.view-more-btn.is-view-less{
+    background:linear-gradient(135deg, #111827, #334155);
+    box-shadow:0 12px 30px rgba(15,23,42,0.24);
 }
 
 /* ========================= */
@@ -9902,7 +9947,7 @@ select:focus{
         overflow:visible !important;
     }
 
-    body:not(.find-page) #listings-section #listing-container,
+    body:not(.is-find-page) #listings-section #listing-container,
     #listings-section > #listing-container{
         width:100% !important;
         max-width:100% !important;
@@ -9956,4 +10001,248 @@ select:focus{
         flex:initial !important;
         scroll-snap-align:none !important;
     }
+}
+
+/* MOBILE CATEGORY TOUCH FIXES
+   Keeps Home and Find category buttons visually stable when users tap them on phones. */
+.home-category-cards a,
+.home-category-cards a i,
+.find-page .find-categories .cat,
+.find-page .find-categories .cat i{
+    -webkit-tap-highlight-color:transparent;
+}
+
+@media(hover:none), (pointer:coarse){
+    .home-category-cards a,
+    .home-category-cards a:hover,
+    .home-category-cards a:active,
+    .home-category-cards a:focus-visible,
+    .home-category-cards a i,
+    .home-category-cards a:hover i,
+    .home-category-cards a:active i{
+        transform:none !important;
+        translate:none !important;
+        scale:1 !important;
+        box-shadow:0 10px 24px rgba(15,23,42,0.07) !important;
+    }
+
+    .home-category-cards a::before,
+    .home-category-cards a::after{
+        display:none !important;
+    }
+}
+
+@media(max-width:700px){
+    .find-page{
+        padding-top:10px !important;
+    }
+
+    .find-page #listings-section{
+        scroll-margin-top:96px;
+    }
+
+    .find-page .find-categories{
+        width:calc(100% - 16px) !important;
+        max-width:430px !important;
+        margin:0 auto 8px !important;
+        padding:6px !important;
+        display:grid !important;
+        grid-template-columns:repeat(4, minmax(0, 1fr)) !important;
+        gap:5px !important;
+        position:relative !important;
+        top:auto !important;
+        left:auto !important;
+        transform:none !important;
+        z-index:12 !important;
+        overflow:hidden !important;
+        border:1px solid #e8edf3 !important;
+        border-radius:14px !important;
+        background:rgba(255,255,255,0.98) !important;
+        box-shadow:0 8px 22px rgba(15,23,42,0.08) !important;
+    }
+
+    .find-page .find-categories .cat,
+    .find-page .find-categories .cat:hover,
+    .find-page .find-categories .cat:active,
+    .find-page .find-categories .cat:focus-visible,
+    .find-page .find-categories .cat.active{
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        min-height:36px !important;
+        height:36px !important;
+        padding:0 3px !important;
+        display:inline-flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        gap:3px !important;
+        border-radius:10px !important;
+        white-space:normal !important;
+        text-align:center !important;
+        line-height:1.05 !important;
+        font-size:10px !important;
+        transform:none !important;
+        translate:none !important;
+        scale:1 !important;
+        box-shadow:none !important;
+    }
+
+    .find-page .find-categories .cat i,
+    .find-page .find-categories .cat:hover i,
+    .find-page .find-categories .cat:active i{
+        flex:0 0 auto !important;
+        margin:0 !important;
+        font-size:10px !important;
+        transform:none !important;
+        translate:none !important;
+        scale:1 !important;
+    }
+
+    .find-page .find-categories .cat::before,
+    .find-page .find-categories .cat::after{
+        display:none !important;
+    }
+
+    .find-page #listings-section > #listing-container,
+    .find-page .find-results-panel #listing-container{
+        width:100% !important;
+        max-width:100% !important;
+        margin:0 !important;
+        padding:4px 0 6px !important;
+        display:grid !important;
+        grid-template-columns:1fr !important;
+        gap:12px !important;
+        overflow:visible !important;
+        overflow-x:visible !important;
+        scroll-snap-type:none !important;
+        scrollbar-width:auto !important;
+    }
+
+    .find-page #listings-section > #listing-container .card,
+    .find-page .find-results-panel #listing-container .card{
+        width:100% !important;
+        min-width:0 !important;
+        flex:none !important;
+        display:grid !important;
+        grid-template-columns:112px minmax(0, 1fr) !important;
+        align-items:stretch !important;
+        scroll-snap-align:none !important;
+    }
+
+    .find-page #listings-section > #listing-container .card .images,
+    .find-page .find-results-panel #listing-container .card .images{
+        width:100% !important;
+        height:100% !important;
+        min-height:142px !important;
+        border-radius:0 !important;
+    }
+
+    /* Mobile listing scroll button: stays visible while more cards exist to the right. */
+    .listing-scroll-hint{
+        position:absolute !important;
+        right:14px !important;
+        top:50% !important;
+        z-index:20 !important;
+        min-height:36px !important;
+        display:inline-flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        gap:7px !important;
+        padding:0 13px !important;
+        border:1px solid rgba(255,255,255,0.72) !important;
+        border-radius:999px !important;
+        background:rgba(17,24,39,0.9) !important;
+        color:#ffffff !important;
+        font:inherit !important;
+        font-size:11px !important;
+        font-weight:900 !important;
+        box-shadow:0 14px 34px rgba(15,23,42,0.24) !important;
+        backdrop-filter:blur(12px);
+        pointer-events:auto !important;
+        cursor:pointer;
+        animation:scrollHintNudge 1.25s ease-in-out infinite;
+    }
+
+    .listing-scroll-hint.is-hidden{
+        display:none !important;
+    }
+
+    /* Home View More state: after expanding, stop carousel scrolling and show 2 cards per row. */
+    body:not(.is-find-page) #listings-section > #listing-container.expanded-listings{
+        width:calc(100% - 28px) !important;
+        max-width:430px !important;
+        margin:0 auto !important;
+        padding:14px 0 28px !important;
+        display:grid !important;
+        grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+        gap:10px !important;
+        overflow:visible !important;
+        overflow-x:visible !important;
+        scroll-snap-type:none !important;
+        scrollbar-width:auto !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container.expanded-listings .card{
+        width:100% !important;
+        min-width:0 !important;
+        flex:none !important;
+        scroll-snap-align:none !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container.expanded-listings .card .images{
+        height:96px !important;
+    }
+}
+
+@media(max-width:700px){
+    /* Find page results: never use the Home mobile carousel on Advanced Find. */
+    body.is-find-page #listings-section > #listing-container,
+    .find-page #listings-section > #listing-container,
+    .find-page .find-results-panel #listing-container{
+        width:100% !important;
+        max-width:100% !important;
+        margin:0 !important;
+        padding:4px 0 6px !important;
+        display:grid !important;
+        grid-template-columns:1fr !important;
+        gap:12px !important;
+        overflow:visible !important;
+        overflow-x:visible !important;
+        overflow-y:visible !important;
+        overscroll-behavior-x:auto !important;
+        scroll-snap-type:none !important;
+        scrollbar-width:auto !important;
+        -webkit-overflow-scrolling:auto !important;
+    }
+
+    body.is-find-page #listings-section > #listing-container .card,
+    .find-page #listings-section > #listing-container .card,
+    .find-page .find-results-panel #listing-container .card{
+        width:100% !important;
+        max-width:100% !important;
+        min-width:0 !important;
+        flex:none !important;
+        flex-basis:auto !important;
+        display:grid !important;
+        grid-template-columns:112px minmax(0, 1fr) !important;
+        align-items:stretch !important;
+        scroll-snap-align:none !important;
+    }
+
+    body.is-find-page #listings-section > #listing-container .card .images,
+    .find-page #listings-section > #listing-container .card .images,
+    .find-page .find-results-panel #listing-container .card .images{
+        width:100% !important;
+        height:100% !important;
+        min-height:142px !important;
+        border-radius:0 !important;
+    }
+}
+
+/* Final batch visibility guard: must stay after card display overrides. */
+#listing-container .listing-batch-hidden,
+#listing-container .find-listing-hidden,
+.find-page #listing-container .listing-batch-hidden,
+.find-page #listing-container .find-listing-hidden{
+    display:none !important;
 }

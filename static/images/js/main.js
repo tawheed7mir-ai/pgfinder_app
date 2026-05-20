@@ -1,4 +1,4 @@
-// HERO SLIDER
+// Home hero slider: rotates the active hero background image every few seconds.
 
 const slides =
 document.querySelectorAll(".hero-slide");
@@ -24,7 +24,7 @@ function changeSlide(){
 setInterval(changeSlide,4000);
 
 
-// DELETE FUNCTION
+// Delete confirmation: shows a SweetAlert prompt, then submits a POST form with CSRF.
 
 function deleteListing(id){
 
