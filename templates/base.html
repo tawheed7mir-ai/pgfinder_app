@@ -284,6 +284,10 @@
 
     {% if session.get('user_id') %}
     <div id="notification-stack" class="notification-stack"></div>
+    <button type="button" id="push-alert-control" class="push-enable-chip">
+        <i class="fa-solid fa-bell"></i>
+        Enable alerts
+    </button>
     {% endif %}
 
 <script>
@@ -842,16 +846,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function showPushTestButton() {
-        if (document.querySelector(".push-test-chip")) return;
+        const existingButton = document.getElementById("push-alert-control");
+        const button = existingButton || document.createElement("button");
 
-        const button = document.createElement("button");
         button.type = "button";
+        button.id = "push-alert-control";
         button.className = "push-test-chip";
         button.innerHTML = `<i class="fa-solid fa-bell"></i> Test phone alert`;
+        button.replaceWith(button.cloneNode(true));
 
-        button.addEventListener("click", async () => {
-            button.disabled = true;
-            button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Sending`;
+        const liveButton = document.getElementById("push-alert-control") || button;
+
+        liveButton.addEventListener("click", async () => {
+            liveButton.disabled = true;
+            liveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Sending`;
 
             try {
                 const result = await sendTestPush();
@@ -871,12 +879,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     action: "Check settings"
                 }, { sound: false });
             } finally {
-                button.disabled = false;
-                button.innerHTML = `<i class="fa-solid fa-bell"></i> Test phone alert`;
+                liveButton.disabled = false;
+                liveButton.innerHTML = `<i class="fa-solid fa-bell"></i> Test phone alert`;
             }
         });
 
-        document.body.appendChild(button);
+        if (!existingButton) {
+            document.body.appendChild(liveButton);
+        }
     }
 
     function showPushPrompt(enablePush) {
@@ -918,36 +928,47 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function showPushEnableChip(enablePush, label = "Enable alerts") {
-        if (document.querySelector(".push-enable-chip") || document.querySelector(".push-test-chip")) return;
+        const existingButton = document.getElementById("push-alert-control");
+        const button = existingButton || document.createElement("button");
 
-        const button = document.createElement("button");
         button.type = "button";
+        button.id = "push-alert-control";
         button.className = "push-enable-chip";
         button.innerHTML = `<i class="fa-solid fa-bell"></i> ${label}`;
+        button.replaceWith(button.cloneNode(true));
 
-        button.addEventListener("click", async () => {
-            button.disabled = true;
-            button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Checking`;
+        const liveButton = document.getElementById("push-alert-control") || button;
+
+        liveButton.addEventListener("click", async () => {
+            liveButton.disabled = true;
+            liveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Checking`;
 
             try {
                 await enablePush();
             } finally {
-                button.disabled = false;
-                button.innerHTML = `<i class="fa-solid fa-bell"></i> ${label}`;
+                liveButton.disabled = false;
+                liveButton.innerHTML = `<i class="fa-solid fa-bell"></i> ${label}`;
             }
         });
 
-        document.body.appendChild(button);
+        if (!existingButton) {
+            document.body.appendChild(liveButton);
+        }
     }
 
     async function setupPushNotifications() {
+        const unavailablePush = async (message) => {
+            showPushEnableChip(async () => showPushStatus(message), "Alerts unavailable");
+            showPushStatus(message);
+        };
+
         if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-            showPushStatus("This browser does not support website push notifications. On iPhone, add the site to Home Screen and open it from there.");
+            await unavailablePush("This browser does not support website push notifications. On iPhone, add the site to Home Screen and open it from there.");
             return;
         }
 
         if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
-            showPushStatus("Phone alerts need HTTPS. Open the Railway https link.");
+            await unavailablePush("Phone alerts need HTTPS. Open the Railway https link.");
             return;
         }
 
@@ -959,7 +980,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const keyData = await keyRes.json();
         if (!keyData.enabled || !keyData.publicKey) {
-            showPushStatus("Push keys are not active on the web app service yet. Check Railway app variables and redeploy.");
+            await unavailablePush("Push keys are not active on the web app service yet. Check Railway app variables and redeploy.");
             return;
         }
 
