@@ -3391,6 +3391,34 @@ REQUESTS PAGE
     pointer-events:none;
 }
 
+.push-test-chip{
+    position:fixed;
+    right:18px;
+    bottom:18px;
+    z-index:9997;
+    min-height:38px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 13px;
+    border:1px solid rgba(24,169,153,0.22);
+    border-radius:999px;
+    background:rgba(255,255,255,0.94);
+    color:#0f766e;
+    font:inherit;
+    font-size:12px;
+    font-weight:900;
+    box-shadow:0 14px 34px rgba(15,23,42,0.12);
+    backdrop-filter:blur(14px);
+    cursor:pointer;
+}
+
+.push-test-chip:disabled{
+    opacity:0.7;
+    cursor:wait;
+}
+
 @media(max-width:640px){
     .notification-stack{
         top:14px;
@@ -3411,6 +3439,11 @@ REQUESTS PAGE
     .push-enable-btn{
         grid-column:1 / -1;
         width:100%;
+    }
+
+    .push-test-chip{
+        right:14px;
+        bottom:14px;
     }
 }
 

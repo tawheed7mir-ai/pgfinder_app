@@ -824,6 +824,61 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    async function sendTestPush() {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+        const res = await fetch("/notifications/push/test", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrfToken,
+                "Accept": "application/json"
+            }
+        });
+
+        if (!res.ok) {
+            throw new Error("Test push failed");
+        }
+
+        return res.json();
+    }
+
+    function showPushTestButton() {
+        if (document.querySelector(".push-test-chip")) return;
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "push-test-chip";
+        button.innerHTML = `<i class="fa-solid fa-bell"></i> Test phone alert`;
+
+        button.addEventListener("click", async () => {
+            button.disabled = true;
+            button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Sending`;
+
+            try {
+                const result = await sendTestPush();
+                showNotification({
+                    type: result.sent > 0 ? "success" : "warning",
+                    title: result.sent > 0 ? "Test sent" : "No phone subscription",
+                    message: result.sent > 0
+                        ? "Close the site and check if your device receives it."
+                        : "Enable notifications on this phone first.",
+                    action: "Push test"
+                }, { sound: result.sent > 0 });
+            } catch (error) {
+                showNotification({
+                    type: "warning",
+                    title: "Test failed",
+                    message: "The server could not send a push test right now.",
+                    action: "Check settings"
+                }, { sound: false });
+            } finally {
+                button.disabled = false;
+                button.innerHTML = `<i class="fa-solid fa-bell"></i> Test phone alert`;
+            }
+        });
+
+        document.body.appendChild(button);
+    }
+
     function showPushPrompt(enablePush) {
         if (document.querySelector(".push-opt-in")) return;
 
@@ -876,6 +931,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (existingSubscription) {
             await savePushSubscription(existingSubscription);
+            showPushTestButton();
             return;
         }
 
@@ -889,6 +945,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             await savePushSubscription(subscription);
+            showPushTestButton();
             showNotification({
                 type: "success",
                 title: "Phone alerts enabled",

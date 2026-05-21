@@ -389,6 +389,7 @@ def ensure_database_schema():
             endpoint_hash CHAR(64) NOT NULL,
             p256dh TEXT NOT NULL,
             auth TEXT NOT NULL,
+            user_agent TEXT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE KEY uniq_push_endpoint_hash (endpoint_hash)
@@ -651,7 +652,7 @@ def delete_push_subscription(cursor, endpoint):
 
 def send_web_push_to_user(user_id, payload):
     if not WEB_PUSH_ENABLED:
-        return
+        return {"sent": 0, "failed": 0, "removed": 0, "enabled": False}
 
     conn = db()
     cursor = conn.cursor(dictionary=True)
@@ -663,6 +664,13 @@ def send_web_push_to_user(user_id, payload):
     """, (user_id,))
 
     subscriptions = cursor.fetchall()
+    stats = {
+        "sent": 0,
+        "failed": 0,
+        "removed": 0,
+        "enabled": True,
+        "subscriptions": len(subscriptions)
+    }
 
     for subscription in subscriptions:
         push_subscription = {
@@ -680,15 +688,19 @@ def send_web_push_to_user(user_id, payload):
                 vapid_private_key=VAPID_PRIVATE_KEY,
                 vapid_claims={"sub": VAPID_SUBJECT}
             )
+            stats["sent"] += 1
         except Exception as err:
             status_code = getattr(getattr(err, "response", None), "status_code", None)
             if WebPushException and isinstance(err, WebPushException) and status_code in (404, 410):
                 delete_push_subscription(cursor, subscription["endpoint"])
+                stats["removed"] += 1
             else:
+                stats["failed"] += 1
                 app.logger.info("Web push failed for user %s: %s", user_id, err.__class__.__name__)
 
     conn.commit()
     conn.close()
+    return stats
 
 
 def calculate_distance_km(lat1, lon1, lat2, lon2):
@@ -814,6 +826,35 @@ def ensure_listing_filter_columns():
                 if err.errno != 1060:
                     conn.close()
                     raise
+
+    conn.commit()
+    conn.close()
+
+
+def ensure_push_subscription_columns():
+
+    ensure_database_schema()
+
+    conn = db()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT COLUMN_NAME
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'push_subscriptions'
+    """)
+
+    existing_columns = {
+        row["COLUMN_NAME"]
+        for row in cursor.fetchall()
+    }
+
+    if "user_agent" not in existing_columns:
+        cursor.execute("""
+            ALTER TABLE push_subscriptions
+            ADD COLUMN user_agent TEXT NULL
+        """)
 
     conn.commit()
     conn.close()
@@ -2664,12 +2705,67 @@ def push_public_key():
     })
 
 
+@app.route("/notifications/push/status")
+def push_status():
+    if "user_id" not in session:
+        return jsonify({"error": "Login required"}), 401
+
+    ensure_push_subscription_columns()
+
+    conn = db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT id, user_agent, updated_at
+        FROM push_subscriptions
+        WHERE user_id=%s
+        ORDER BY updated_at DESC
+    """, (session["user_id"],))
+    subscriptions = cursor.fetchall()
+    conn.close()
+
+    return jsonify({
+        "enabled": WEB_PUSH_ENABLED,
+        "server": {
+            "hasPublicKey": bool(VAPID_PUBLIC_KEY),
+            "hasPrivateKey": bool(VAPID_PRIVATE_KEY),
+            "pywebpushInstalled": bool(webpush)
+        },
+        "subscriptionCount": len(subscriptions),
+        "subscriptions": [
+            {
+                "id": subscription["id"],
+                "userAgent": subscription.get("user_agent") or "",
+                "updatedAt": str(subscription.get("updated_at") or "")
+            }
+            for subscription in subscriptions
+        ]
+    })
+
+
+@app.route("/notifications/push/test", methods=["POST"])
+def test_push_notification():
+    if "user_id" not in session:
+        return jsonify({"error": "Login required"}), 401
+
+    result = send_web_push_to_user(
+        session["user_id"],
+        push_payload(
+            "PG Finder test alert",
+            "If this appears with the site closed, phone notifications are working.",
+            "/my-requests",
+            "info"
+        )
+    )
+
+    return jsonify(result)
+
+
 @app.route("/notifications/push/subscribe", methods=["POST"])
 def subscribe_push_notifications():
     if "user_id" not in session:
         return jsonify({"error": "Login required"}), 401
 
-    ensure_database_schema()
+    ensure_push_subscription_columns()
 
     subscription = request.get_json(silent=True) or {}
     endpoint = subscription.get("endpoint")
@@ -2685,19 +2781,21 @@ def subscribe_push_notifications():
 
     cursor.execute("""
         INSERT INTO push_subscriptions
-        (user_id, endpoint, endpoint_hash, p256dh, auth)
-        VALUES (%s, %s, %s, %s, %s)
+        (user_id, endpoint, endpoint_hash, p256dh, auth, user_agent)
+        VALUES (%s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
             user_id=VALUES(user_id),
             endpoint=VALUES(endpoint),
             p256dh=VALUES(p256dh),
-            auth=VALUES(auth)
+            auth=VALUES(auth),
+            user_agent=VALUES(user_agent)
     """, (
         session["user_id"],
         endpoint,
         endpoint_hash(endpoint),
         p256dh,
-        auth
+        auth,
+        request.headers.get("User-Agent", "")
     ))
 
     conn.commit()
@@ -2711,7 +2809,7 @@ def unsubscribe_push_notifications():
     if "user_id" not in session:
         return jsonify({"error": "Login required"}), 401
 
-    ensure_database_schema()
+    ensure_push_subscription_columns()
 
     subscription = request.get_json(silent=True) or {}
     endpoint = subscription.get("endpoint")
