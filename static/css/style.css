@@ -10767,14 +10767,22 @@ body:not(.is-find-page) .home-listings-title strong{
 /* Mobile home vertical rhythm: tighten Categories -> Featured stays gap. */
 @media(max-width:700px){
     body:not(.is-find-page) .home-category-cards{
-        margin-bottom:6px !important;
+        width:calc(100% - 28px) !important;
+        max-width:430px !important;
+        margin:0 auto 4px !important;
+        gap:6px !important;
     }
 
     body:not(.is-find-page) #listings-section{
+        margin-top:0 !important;
         padding-top:0 !important;
     }
 
     body:not(.is-find-page) .home-listings-head{
-        margin-top:0 !important;
+        margin:0 auto 0 !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container{
+        padding-top:8px !important;
     }
 }
