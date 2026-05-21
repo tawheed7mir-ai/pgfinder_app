@@ -10683,3 +10683,83 @@ body:not(.is-find-page) .home-listings-title strong{
         animation:none !important;
     }
 }
+
+/* Mobile home listings rail alignment: match Featured stays panel edges. */
+@media(max-width:700px){
+    body:not(.is-find-page) .home-listings-head,
+    body:not(.is-find-page) #listings-section > #listing-container{
+        width:calc(100% - 28px) !important;
+        max-width:430px !important;
+        margin-left:auto !important;
+        margin-right:auto !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container{
+        padding:12px 0 22px !important;
+        gap:10px !important;
+        overflow-x:auto !important;
+        overflow-y:hidden !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container .card{
+        flex:0 0 min(76vw, 292px) !important;
+        max-width:292px !important;
+        border-radius:13px !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container .card .images{
+        height:156px !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container .card-content{
+        padding:10px 11px 12px !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container .card-content h3{
+        min-height:34px !important;
+        font-size:13px !important;
+        line-height:1.28 !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container .listing-card-tags{
+        min-height:22px !important;
+        margin-top:6px !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container .listing-card-tags span{
+        min-height:20px !important;
+        padding:0 7px !important;
+        font-size:9px !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container .card-content .price{
+        margin-top:6px !important;
+        font-size:16px !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container .location{
+        min-height:32px !important;
+        margin:7px 0 9px !important;
+        font-size:10px !important;
+        line-height:1.42 !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container .card-actions{
+        gap:6px !important;
+    }
+
+    body:not(.is-find-page) #listings-section > #listing-container .card-actions .map-link,
+    body:not(.is-find-page) #listings-section > #listing-container .card-actions .view-btn{
+        min-height:31px !important;
+        border-radius:9px !important;
+        font-size:10px !important;
+        padding:0 7px !important;
+    }
+}
+
+@media(max-width:380px){
+    body:not(.is-find-page) #listings-section > #listing-container .card{
+        flex-basis:74vw !important;
+        max-width:270px !important;
+    }
+}
