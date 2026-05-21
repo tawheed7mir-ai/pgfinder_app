@@ -473,6 +473,151 @@
     background:#ef4444;
 }
 
+.admin-broadcast{
+    margin:0 0 18px;
+    padding:22px;
+    border:1px solid rgba(226,232,240,0.9);
+    border-radius:26px;
+    background:rgba(255,255,255,0.94);
+    box-shadow:0 24px 72px rgba(15,23,42,0.08);
+}
+
+.broadcast-form{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+}
+
+.broadcast-form label{
+    display:grid;
+    gap:7px;
+    color:#334155;
+    font-size:12px;
+    font-weight:900;
+}
+
+.broadcast-form label.full{
+    grid-column:1 / -1;
+}
+
+.broadcast-form input,
+.broadcast-form textarea,
+.broadcast-form select{
+    width:100%;
+    border:1px solid #dfe7f0;
+    border-radius:14px;
+    outline:0;
+    background:#f8fafc;
+    color:#111827;
+    font:inherit;
+    font-weight:700;
+}
+
+.broadcast-form input,
+.broadcast-form select{
+    min-height:46px;
+    padding:0 13px;
+}
+
+.broadcast-form textarea{
+    min-height:104px;
+    resize:vertical;
+    padding:13px;
+    line-height:1.55;
+}
+
+.broadcast-form input:focus,
+.broadcast-form textarea:focus,
+.broadcast-form select:focus{
+    border-color:#18a999;
+    background:white;
+    box-shadow:0 0 0 4px rgba(24,169,153,0.12);
+}
+
+.broadcast-actions{
+    grid-column:1 / -1;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:12px;
+}
+
+.broadcast-send{
+    min-height:46px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    padding:0 16px;
+    border:0;
+    border-radius:14px;
+    background:linear-gradient(135deg, #ff385c, #18a999);
+    color:white;
+    font-family:inherit;
+    font-size:13px;
+    font-weight:900;
+    cursor:pointer;
+    box-shadow:0 16px 40px rgba(255,56,92,0.18);
+}
+
+.broadcast-meta{
+    color:#64748b;
+    font-size:12px;
+    font-weight:800;
+}
+
+.broadcast-notice{
+    margin:0 0 14px;
+    padding:12px 14px;
+    border-radius:16px;
+    background:#ecfdf5;
+    color:#047857;
+    font-size:13px;
+    font-weight:900;
+}
+
+.broadcast-notice.warning{
+    background:#fff7ed;
+    color:#c2410c;
+}
+
+.broadcast-list{
+    display:grid;
+    gap:12px;
+    padding:0 22px 22px;
+}
+
+.broadcast-item{
+    padding:14px;
+    border:1px solid #edf1f6;
+    border-radius:18px;
+    background:#f8fafc;
+}
+
+.broadcast-item strong,
+.broadcast-item span,
+.broadcast-item small{
+    display:block;
+}
+
+.broadcast-item strong{
+    color:#111827;
+}
+
+.broadcast-item span{
+    margin-top:5px;
+    color:#64748b;
+    font-size:12px;
+    line-height:1.55;
+}
+
+.broadcast-item small{
+    margin-top:8px;
+    color:#0f766e;
+    font-size:11px;
+    font-weight:900;
+}
+
 .admin-side{
     display:grid;
     gap:22px;
@@ -618,6 +763,7 @@
 
     .admin-control-bar,
     .admin-stats,
+    .broadcast-form,
     .ops-mini-grid,
     .insight-grid{
         grid-template-columns:1fr;
@@ -726,6 +872,63 @@
                 <strong>{{ total_requests or 0 }}</strong>
                 <small>{{ pending_requests }} still pending moderation follow-up</small>
             </div>
+        </section>
+
+        <section class="admin-broadcast">
+            <div class="panel-head">
+                <div>
+                    <span class="admin-panel-kicker">App announcements</span>
+                    <h2>Send notification to users</h2>
+                    <p>Broadcast a short update to seekers, owners, or everyone using in-app alerts and saved phone push subscriptions.</p>
+                </div>
+                <div class="panel-count">{{ push_ready_users or 0 }}</div>
+            </div>
+
+            {% if request.args.get('broadcast') == 'sent' %}
+            <div class="broadcast-notice">
+                Sent to {{ request.args.get('users', '0') }} accounts. Phone pushes delivered: {{ request.args.get('push', '0') }}{% if request.args.get('failed', '0') != '0' %}, failed: {{ request.args.get('failed') }}{% endif %}.
+            </div>
+            {% elif request.args.get('broadcast') == 'invalid' %}
+            <div class="broadcast-notice warning">
+                Add a title and message before sending. Keep title under 120 characters and message under 500.
+            </div>
+            {% endif %}
+
+            <form class="broadcast-form" method="POST" action="/admin/broadcast">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+                <label>
+                    Title
+                    <input type="text" name="title" maxlength="120" placeholder="Maintenance update" required>
+                </label>
+
+                <label>
+                    Audience
+                    <select name="target_role">
+                        <option value="all">Users and owners</option>
+                        <option value="user">Users only</option>
+                        <option value="owner">Owners only</option>
+                    </select>
+                </label>
+
+                <label class="full">
+                    Message
+                    <textarea name="message" maxlength="500" placeholder="Write the notification message..." required></textarea>
+                </label>
+
+                <label>
+                    Open link
+                    <input type="text" name="link" value="/" placeholder="/find">
+                </label>
+
+                <div class="broadcast-actions">
+                    <button class="broadcast-send" type="submit" onclick="return confirm('Send this notification now?')">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        Send notification
+                    </button>
+                    <span class="broadcast-meta">{{ push_ready_users or 0 }} accounts currently have phone alerts saved.</span>
+                </div>
+            </form>
         </section>
 
         <section class="admin-control-bar">
@@ -868,6 +1071,28 @@
                             <span>Pending load</span>
                             <strong>{{ (pending_requests / request_base * 100)|round(0) }}%</strong>
                         </div>
+                    </div>
+                </div>
+
+                <div class="admin-panel">
+                    <div class="panel-head">
+                        <div>
+                            <span class="admin-panel-kicker">Recent broadcasts</span>
+                            <h2>Announcement history</h2>
+                            <p>Latest app-wide messages sent by admins.</p>
+                        </div>
+                    </div>
+
+                    <div class="broadcast-list">
+                        {% for broadcast in broadcasts %}
+                        <div class="broadcast-item">
+                            <strong>{{ broadcast.title }}</strong>
+                            <span>{{ broadcast.message }}</span>
+                            <small>{{ broadcast.target_role|capitalize }} - {{ broadcast.push_sent }} push sent - {{ broadcast.created_at }}</small>
+                        </div>
+                        {% else %}
+                        <div class="admin-empty">No broadcasts sent yet.</div>
+                        {% endfor %}
                     </div>
                 </div>
 

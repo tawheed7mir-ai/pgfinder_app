@@ -22,6 +22,11 @@ except ImportError:
     webpush = None
 
 try:
+    from py_vapid import Vapid
+except ImportError:
+    Vapid = None
+
+try:
     import cloudinary
     import cloudinary.uploader
 except ImportError:
@@ -95,8 +100,18 @@ CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET")
 CLOUDINARY_URL = os.environ.get("CLOUDINARY_URL")
 CLOUDINARY_ENABLED = bool(CLOUDINARY_URL) or all([CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET])
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "").strip()
-VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "").replace("\\n", "\n").strip()
+VAPID_PRIVATE_KEY_RAW = os.environ.get("VAPID_PRIVATE_KEY", "").replace("\\n", "\n").strip()
 VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "mailto:pgfinder@example.com")
+
+
+def normalize_vapid_private_key(private_key):
+    if private_key.startswith("-----BEGIN") and Vapid:
+        return Vapid.from_pem(private_key.encode("utf-8"))
+
+    return private_key
+
+
+VAPID_PRIVATE_KEY = normalize_vapid_private_key(VAPID_PRIVATE_KEY_RAW)
 WEB_PUSH_ENABLED = bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY and webpush)
 
 if CLOUDINARY_ENABLED:
@@ -396,6 +411,20 @@ def ensure_database_schema():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS broadcast_notifications (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            created_by INT NOT NULL,
+            target_role VARCHAR(30) NOT NULL DEFAULT 'all',
+            title VARCHAR(120) NOT NULL,
+            message TEXT NOT NULL,
+            link VARCHAR(255) NOT NULL DEFAULT '/',
+            push_sent INT NOT NULL DEFAULT 0,
+            push_failed INT NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     create_index_if_missing(cursor, "users", "idx_users_role", ["role"])
     create_index_if_missing(cursor, "listings", "idx_listings_owner", ["owner_id"])
     create_index_if_missing(cursor, "listings", "idx_listings_location", ["location(120)"])
@@ -405,6 +434,7 @@ def ensure_database_schema():
     create_index_if_missing(cursor, "requests", "idx_requests_status", ["status"])
     create_index_if_missing(cursor, "contact_messages", "idx_contact_messages_user", ["user_id"])
     create_index_if_missing(cursor, "push_subscriptions", "idx_push_subscriptions_user", ["user_id"])
+    create_index_if_missing(cursor, "broadcast_notifications", "idx_broadcast_notifications_target", ["target_role"])
 
     conn.commit()
     conn.close()
@@ -2445,10 +2475,12 @@ def admin_dashboard():
         SELECT
             users.*,
             COUNT(DISTINCT listings.id) AS listing_count,
-            COUNT(DISTINCT requests.id) AS request_count
+            COUNT(DISTINCT requests.id) AS request_count,
+            COUNT(DISTINCT push_subscriptions.id) AS push_subscription_count
         FROM users
         LEFT JOIN listings ON listings.owner_id = users.id
         LEFT JOIN requests ON requests.user_id = users.id
+        LEFT JOIN push_subscriptions ON push_subscriptions.user_id = users.id
         GROUP BY users.id
         ORDER BY users.id DESC
     """)
@@ -2472,6 +2504,21 @@ def admin_dashboard():
     """)
     listings = cursor.fetchall()
 
+    cursor.execute("""
+        SELECT COUNT(DISTINCT user_id) AS total
+        FROM push_subscriptions
+    """)
+    push_ready_users = cursor.fetchone()["total"] or 0
+
+    cursor.execute("""
+        SELECT broadcast_notifications.*, users.name AS admin_name
+        FROM broadcast_notifications
+        LEFT JOIN users ON users.id = broadcast_notifications.created_by
+        ORDER BY broadcast_notifications.id DESC
+        LIMIT 5
+    """)
+    broadcasts = cursor.fetchall()
+
     conn.close()
 
     return render_template(
@@ -2481,7 +2528,9 @@ def admin_dashboard():
         user_stats=user_stats,
         total_listings=total_listings,
         total_requests=total_requests,
-        request_stats=request_stats
+        request_stats=request_stats,
+        push_ready_users=push_ready_users,
+        broadcasts=broadcasts
     )
 
 
@@ -2516,6 +2565,80 @@ def admin_update_user_role(id):
         session["role"] = role
 
     return redirect("/admin")
+
+
+@app.route("/admin/broadcast", methods=["POST"])
+def admin_broadcast():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    if not is_admin():
+        return redirect("/")
+
+    title = (request.form.get("title") or "").strip()
+    message = (request.form.get("message") or "").strip()
+    target_role = (request.form.get("target_role") or "all").strip()
+    link = (request.form.get("link") or "/").strip()
+
+    if target_role not in ("all", "user", "owner"):
+        target_role = "all"
+
+    if not is_safe_redirect_path(link):
+        link = "/"
+
+    if not title or not message or len(title) > 120 or len(message) > 500:
+        return redirect("/admin?broadcast=invalid")
+
+    conn = db()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        INSERT INTO broadcast_notifications
+        (created_by, target_role, title, message, link)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (session["user_id"], target_role, title, message, link))
+    broadcast_id = cursor.lastrowid
+
+    if target_role == "all":
+        cursor.execute("""
+            SELECT id
+            FROM users
+            WHERE role IN ('user', 'owner')
+        """)
+    else:
+        cursor.execute("""
+            SELECT id
+            FROM users
+            WHERE role=%s
+        """, (target_role,))
+
+    recipients = [row["id"] for row in cursor.fetchall()]
+    conn.commit()
+    conn.close()
+
+    push_stats = {"sent": 0, "failed": 0, "removed": 0}
+    payload = push_payload(title, message, link, "broadcast")
+
+    for recipient_id in recipients:
+        stats = send_web_push_to_user(recipient_id, payload)
+        push_stats["sent"] += stats.get("sent", 0)
+        push_stats["failed"] += stats.get("failed", 0)
+        push_stats["removed"] += stats.get("removed", 0)
+
+    conn = db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        UPDATE broadcast_notifications
+        SET push_sent=%s, push_failed=%s
+        WHERE id=%s
+    """, (push_stats["sent"], push_stats["failed"], broadcast_id))
+    conn.commit()
+    conn.close()
+
+    return redirect(
+        f"/admin?broadcast=sent&users={len(recipients)}&push={push_stats['sent']}&failed={push_stats['failed']}"
+    )
 
 
 # Admin delete user action: removes a user and cleans up their related data safely.
@@ -2562,6 +2685,11 @@ def admin_delete_user(id):
     cursor.execute("""
         DELETE FROM listings
         WHERE owner_id=%s
+    """, (id,))
+
+    cursor.execute("""
+        DELETE FROM push_subscriptions
+        WHERE user_id=%s
     """, (id,))
 
     cursor.execute("""
@@ -2681,6 +2809,38 @@ def notifications_feed():
             })
 
     session["user_seen_request_statuses"] = current_statuses
+
+    if session.get("role") in ("user", "owner"):
+        broadcast_seen_key = "broadcast_seen_id"
+        broadcast_seen_id = session.get(broadcast_seen_key, 0)
+        role = session.get("role")
+
+        cursor.execute("""
+            SELECT COALESCE(MAX(id), 0) AS latest_id
+            FROM broadcast_notifications
+            WHERE target_role IN ('all', %s)
+        """, (role,))
+        latest_broadcast_id = cursor.fetchone()["latest_id"] or 0
+
+        cursor.execute("""
+            SELECT id, title, message, link
+            FROM broadcast_notifications
+            WHERE target_role IN ('all', %s)
+            AND id > %s
+            ORDER BY id DESC
+            LIMIT 5
+        """, (role, broadcast_seen_id))
+
+        for broadcast in cursor.fetchall():
+            notifications.append({
+                "id": f"broadcast-{broadcast['id']}",
+                "type": "broadcast",
+                "title": broadcast["title"],
+                "message": broadcast["message"],
+                "link": broadcast["link"] or "/"
+            })
+
+        session[broadcast_seen_key] = latest_broadcast_id
 
     session.modified = True
     conn.close()
