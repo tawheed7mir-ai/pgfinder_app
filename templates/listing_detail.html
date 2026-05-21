@@ -888,14 +888,62 @@
 @media(max-width:560px){
     .detail-pro-page{
         padding:24px 14px 58px;
+        overflow-x:hidden;
     }
 
+    .detail-pro-shell{
+        width:100%;
+        max-width:100%;
+        min-width:0;
+    }
+
+    .detail-pro-gallery,
     .detail-pro-info{
+        width:100%;
+        max-width:100%;
+        min-width:0;
         padding:18px;
+        overflow:hidden;
     }
 
     .main-image{
         height:260px;
+    }
+
+    .detail-pro-info h1,
+    .detail-location,
+    .detail-description,
+    .owner-box p,
+    .request-box-head,
+    .request-state-card,
+    .professional-request-box{
+        min-width:0;
+        max-width:100%;
+        overflow-wrap:anywhere;
+    }
+
+    .detail-action-row{
+        width:100%;
+        grid-template-columns:1fr;
+    }
+
+    .detail-action-row a,
+    .send-btn{
+        width:100%;
+        max-width:100%;
+        min-width:0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        text-align:center;
+        white-space:normal;
+        line-height:1.2;
+        padding:0 12px;
+    }
+
+    .send-btn{
+        min-height:44px;
+        padding:12px;
     }
 }
 </style>
