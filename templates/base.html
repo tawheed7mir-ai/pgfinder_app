@@ -55,7 +55,7 @@
 
     <!-- SEARCH -->
 
-    <form class="search-box" action="/find" method="GET">
+    <form class="search-box" action="/find#listings-section" method="GET">
 
         <input
         id="nav-search-input"
@@ -353,8 +353,24 @@ function moveSlide(button, direction){
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     const searchInput = document.getElementById("nav-search-input");
+    const searchForm = document.querySelector(".search-box");
 
     if (!searchInput) return;
+
+    if (searchForm) {
+        searchForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+
+            const params = new URLSearchParams();
+            const query = searchInput.value.trim();
+
+            if (query) {
+                params.set("search", query);
+            }
+
+            window.location.href = `/find${params.toString() ? `?${params.toString()}` : ""}#listings-section`;
+        });
+    }
 
     const searchPrompts = [
         "Search locations...",
