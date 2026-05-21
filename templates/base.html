@@ -956,18 +956,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function setupPushNotifications() {
-        const unavailablePush = async (message) => {
-            showPushEnableChip(async () => showPushStatus(message), "Alerts unavailable");
-            showPushStatus(message);
+        const unavailablePush = async () => {
+            document.getElementById("push-alert-control")?.remove();
         };
 
         if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-            await unavailablePush("This browser does not support website push notifications. On iPhone, add the site to Home Screen and open it from there.");
+            await unavailablePush();
             return;
         }
 
         if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
-            await unavailablePush("Phone alerts need HTTPS. Open the Railway https link.");
+            await unavailablePush();
             return;
         }
 
@@ -979,7 +978,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const keyData = await keyRes.json();
         if (!keyData.enabled || !keyData.publicKey) {
-            await unavailablePush("Push keys are not active on the web app service yet. Check Railway app variables and redeploy.");
+            await unavailablePush();
             return;
         }
 
@@ -1062,7 +1061,6 @@ document.addEventListener("DOMContentLoaded", () => {
             setTimeout(() => showPushPrompt(enablePush), 1400);
         } else {
             showPushEnableChip(enablePush, "Alerts blocked");
-            showPushStatus("Notifications are blocked for this site. Change the site permission to Allow, then refresh.");
         }
     }
 
