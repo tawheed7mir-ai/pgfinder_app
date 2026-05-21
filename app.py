@@ -392,11 +392,21 @@ def csrf_token():
     return token
 
 
+def static_asset_version(filename):
+    static_path = os.path.join(app.static_folder, filename.replace("/", os.sep))
+
+    try:
+        return str(int(os.path.getmtime(static_path)))
+    except OSError:
+        return "1"
+
+
 @app.context_processor
 def inject_csrf_token():
     return {
         "csrf_token": csrf_token,
-        "image_src": image_src
+        "image_src": image_src,
+        "static_asset_version": static_asset_version
     }
 
 
