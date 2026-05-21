@@ -61,6 +61,44 @@
                 {{ listing["location"] }}
             </div>
 
+            {% set room_type_labels = {
+                "pg": "PG",
+                "room": "Room",
+                "studio": "Studio",
+                "1bhk": "1 BHK",
+                "2bhk": "2 BHK",
+                "3bhk": "3 BHK"
+            } %}
+            {% set sharing_type_labels = {
+                "single": "Single / Private",
+                "double": "Double sharing",
+                "triple": "Triple sharing",
+                "shared": "Shared"
+            } %}
+            {% if listing.get("room_type") or listing.get("sharing_type") %}
+            <div class="detail-spec-grid" aria-label="Listing details">
+                {% if listing.get("room_type") %}
+                <div class="detail-spec-card property">
+                    <span><i class="fa-solid fa-building-user"></i></span>
+                    <div>
+                        <small>Property type</small>
+                        <strong>{{ room_type_labels.get(listing.get("room_type"), listing.get("room_type")|upper) }}</strong>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if listing.get("sharing_type") %}
+                <div class="detail-spec-card sharing">
+                    <span><i class="fa-solid fa-user-group"></i></span>
+                    <div>
+                        <small>Sharing type</small>
+                        <strong>{{ sharing_type_labels.get(listing.get("sharing_type"), listing.get("sharing_type")|capitalize) }}</strong>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
             {% set selected_amenities = (listing.get("amenities") or "").split(",") %}
             {% set has_amenities = selected_amenities|reject("equalto", "")|list|length > 0 %}
             {% set amenity_labels = {
@@ -73,7 +111,9 @@
             } %}
             <section class="detail-amenities">
                 <div class="detail-section-head">
-                    <span><i class="fa-solid fa-sparkles"></i></span>
+                    <span class="detail-offer-icon">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </span>
                     <div>
                         <h2>What this stay offers</h2>
                         <p>Facilities shared by the owner for this listing.</p>
@@ -312,6 +352,86 @@
     margin-top:4px;
 }
 
+.detail-spec-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:10px;
+    margin-top:14px;
+}
+
+.detail-spec-card{
+    position:relative;
+    isolation:isolate;
+    min-height:76px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:13px;
+    border:1px solid rgba(226,232,240,0.9);
+    border-radius:18px;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,250,252,0.88)),
+        radial-gradient(circle at 12% 12%, rgba(255,56,92,0.13), transparent 34%),
+        radial-gradient(circle at 90% 18%, rgba(24,169,153,0.14), transparent 36%);
+    overflow:hidden;
+    box-shadow:0 16px 38px rgba(15,23,42,0.07);
+}
+
+.detail-spec-card::before{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    z-index:-1;
+    border-radius:inherit;
+    background:linear-gradient(120deg, rgba(255,56,92,0.26), rgba(24,169,153,0.20), rgba(255,255,255,0));
+    opacity:0.48;
+}
+
+.detail-spec-card::after{
+    content:"";
+    position:absolute;
+    width:72px;
+    height:72px;
+    right:-28px;
+    bottom:-32px;
+    border-radius:999px;
+    background:rgba(24,169,153,0.14);
+    filter:blur(2px);
+}
+
+.detail-spec-card > span{
+    width:42px;
+    height:42px;
+    flex:0 0 42px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    background:linear-gradient(135deg,#111827,#0f766e);
+    color:white;
+    box-shadow:0 12px 28px rgba(15,23,42,0.18);
+}
+
+.detail-spec-card.sharing > span{
+    background:linear-gradient(135deg,#ff385c,#f97316);
+}
+
+.detail-spec-card small{
+    display:block;
+    color:#64748b;
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+}
+
+.detail-spec-card strong{
+    display:block;
+    margin-top:3px;
+    color:#111827;
+    font-size:14px;
+    line-height:1.2;
+}
+
 .detail-description{
     margin:18px 0;
     color:#64748b;
@@ -338,14 +458,43 @@
 }
 
 .detail-section-head > span{
+    position:relative;
     width:38px;
     height:38px;
     flex:0 0 38px;
     display:grid;
     place-items:center;
     border-radius:14px;
-    background:#111827;
+    background:
+        radial-gradient(circle at 30% 24%, rgba(255,255,255,0.95), rgba(255,255,255,0.18) 18%, transparent 28%),
+        linear-gradient(135deg,#ff385c,#18a999 58%,#111827);
     color:white;
+    box-shadow:0 14px 34px rgba(24,169,153,0.24), inset 0 1px 0 rgba(255,255,255,0.42);
+    overflow:hidden;
+    animation:detailOfferFloat 3.2s ease-in-out infinite;
+}
+
+.detail-section-head > span::before{
+    content:"";
+    position:absolute;
+    inset:-45%;
+    background:conic-gradient(from 0deg, transparent, rgba(255,255,255,0.72), transparent 34%);
+    animation:detailOfferSpin 3.6s linear infinite;
+}
+
+.detail-section-head > span::after{
+    content:"";
+    position:absolute;
+    inset:4px;
+    border-radius:11px;
+    border:1px solid rgba(255,255,255,0.32);
+}
+
+.detail-section-head > span i{
+    position:relative;
+    z-index:1;
+    filter:drop-shadow(0 4px 8px rgba(15,23,42,0.24));
+    animation:detailOfferPulse 1.9s ease-in-out infinite;
 }
 
 .detail-section-head h2{
@@ -619,6 +768,20 @@
     to{opacity:1; transform:translateY(0) scale(1)}
 }
 
+@keyframes detailOfferFloat{
+    0%,100%{transform:translateY(0) rotate(0deg)}
+    50%{transform:translateY(-3px) rotate(-4deg)}
+}
+
+@keyframes detailOfferSpin{
+    to{transform:rotate(360deg)}
+}
+
+@keyframes detailOfferPulse{
+    0%,100%{transform:scale(1)}
+    50%{transform:scale(1.14)}
+}
+
 @media(max-width:920px){
     .detail-pro-shell{
         grid-template-columns:1fr;
@@ -724,6 +887,32 @@
     margin-top:8px;
     font-size:13px;
     line-height:1.55;
+}
+
+.detail-spec-grid{
+    gap:8px;
+    margin-top:12px;
+}
+
+.detail-spec-card{
+    min-height:66px;
+    padding:11px;
+    border-radius:16px;
+}
+
+.detail-spec-card > span{
+    width:36px;
+    height:36px;
+    flex-basis:36px;
+    border-radius:13px;
+}
+
+.detail-spec-card small{
+    font-size:9px;
+}
+
+.detail-spec-card strong{
+    font-size:13px;
 }
 
 .detail-description{
@@ -912,6 +1101,8 @@
 
     .detail-pro-info h1,
     .detail-location,
+    .detail-spec-grid,
+    .detail-spec-card,
     .detail-description,
     .owner-box p,
     .request-box-head,
@@ -920,6 +1111,10 @@
         min-width:0;
         max-width:100%;
         overflow-wrap:anywhere;
+    }
+
+    .detail-spec-grid{
+        grid-template-columns:1fr;
     }
 
     .detail-action-row{
