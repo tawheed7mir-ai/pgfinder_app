@@ -817,7 +817,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function savePushSubscription(subscription) {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
 
-        await fetch("/notifications/push/subscribe", {
+        const res = await fetch("/notifications/push/subscribe", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -826,6 +826,12 @@ document.addEventListener("DOMContentLoaded", () => {
             },
             body: JSON.stringify(subscription)
         });
+
+        if (!res.ok) {
+            throw new Error("Unable to save push subscription");
+        }
+
+        return res.json();
     }
 
     async function sendTestPush() {
@@ -845,7 +851,19 @@ document.addEventListener("DOMContentLoaded", () => {
         return res.json();
     }
 
-    function showPushTestButton() {
+    async function getPushStatus() {
+        const res = await fetch("/notifications/push/status", {
+            headers: { "Accept": "application/json" }
+        });
+
+        if (!res.ok) {
+            throw new Error("Unable to read push status");
+        }
+
+        return res.json();
+    }
+
+    function showPushTestButton(enablePush = null) {
         const existingButton = document.getElementById("push-alert-control");
         const button = existingButton || document.createElement("button");
 
@@ -863,6 +881,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             try {
                 const result = await sendTestPush();
+
+                if ((result.subscriptions || 0) === 0 && enablePush) {
+                    await enablePush({ force: true });
+                    showNotification({
+                        type: "info",
+                        title: "Phone linked",
+                        message: "Try the test alert again now.",
+                        action: "Subscription saved"
+                    }, { sound: false });
+                    return;
+                }
+
                 showNotification({
                     type: result.sent > 0 ? "success" : "warning",
                     title: result.sent > 0 ? "Test sent" : "No phone subscription",
@@ -944,7 +974,7 @@ document.addEventListener("DOMContentLoaded", () => {
             liveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Checking`;
 
             try {
-                await enablePush();
+                await enablePush({ force: true });
             } finally {
                 liveButton.disabled = false;
                 liveButton.innerHTML = `<i class="fa-solid fa-bell"></i> ${label}`;
@@ -988,25 +1018,52 @@ document.addEventListener("DOMContentLoaded", () => {
         const existingSubscription = await registration.pushManager.getSubscription();
 
         if (existingSubscription) {
-            await savePushSubscription(existingSubscription);
-            showPushTestButton();
-            return;
+            try {
+                await savePushSubscription(existingSubscription);
+                const status = await getPushStatus();
+
+                if ((status.subscriptionCount || 0) > 0) {
+                    showPushTestButton();
+                    return;
+                }
+            } catch (error) {
+                console.log("Existing push subscription could not be saved:", error);
+            }
         }
 
-        const enablePush = async () => {
+        const enablePush = async (options = {}) => {
             const permission = await Notification.requestPermission();
             if (permission !== "granted") {
                 showPushStatus("Notifications are blocked. Open browser site settings for this Railway link and set Notifications to Allow.");
                 return;
             }
 
+            const currentSubscription = await registration.pushManager.getSubscription();
+            if (currentSubscription && options.force) {
+                await currentSubscription.unsubscribe();
+            }
+
+            const usableSubscription = options.force
+                ? null
+                : await registration.pushManager.getSubscription();
+
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
+            }).catch(async (error) => {
+                if (usableSubscription) return usableSubscription;
+                throw error;
             });
 
             await savePushSubscription(subscription);
-            showPushTestButton();
+            const status = await getPushStatus();
+
+            if ((status.subscriptionCount || 0) === 0) {
+                showPushStatus("Chrome allowed notifications, but Railway did not save this phone yet. Refresh and tap Enable alerts again.");
+                return;
+            }
+
+            showPushTestButton(enablePush);
             showNotification({
                 type: "success",
                 title: "Phone alerts enabled",
