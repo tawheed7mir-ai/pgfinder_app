@@ -834,23 +834,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return res.json();
     }
 
-    async function sendTestPush() {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
-        const res = await fetch("/notifications/push/test", {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": csrfToken,
-                "Accept": "application/json"
-            }
-        });
-
-        if (!res.ok) {
-            throw new Error("Test push failed");
-        }
-
-        return res.json();
-    }
-
     async function getPushStatus() {
         const res = await fetch("/notifications/push/status", {
             headers: { "Accept": "application/json" }
@@ -863,54 +846,40 @@ document.addEventListener("DOMContentLoaded", () => {
         return res.json();
     }
 
-    function showPushTestButton(enablePush = null) {
+    function showPushReadyButton(enablePush) {
         const existingButton = document.getElementById("push-alert-control");
         const button = existingButton || document.createElement("button");
 
         button.type = "button";
         button.id = "push-alert-control";
-        button.className = "push-test-chip";
-        button.innerHTML = `<i class="fa-solid fa-bell"></i> Test phone alert`;
+        button.className = "push-enable-chip is-ready";
+        button.innerHTML = `<i class="fa-solid fa-bell"></i> Alerts enabled`;
         button.replaceWith(button.cloneNode(true));
 
         const liveButton = document.getElementById("push-alert-control") || button;
 
         liveButton.addEventListener("click", async () => {
             liveButton.disabled = true;
-            liveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Sending`;
+            liveButton.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Checking`;
 
             try {
-                const result = await sendTestPush();
-
-                if ((result.subscriptions || 0) === 0 && enablePush) {
-                    await enablePush({ force: true });
-                    showNotification({
-                        type: "info",
-                        title: "Phone linked",
-                        message: "Try the test alert again now.",
-                        action: "Subscription saved"
-                    }, { sound: false });
-                    return;
-                }
-
+                await enablePush({ force: true, quiet: true });
                 showNotification({
-                    type: result.sent > 0 ? "success" : "warning",
-                    title: result.sent > 0 ? "Test sent" : "No phone subscription",
-                    message: result.sent > 0
-                        ? "Close the site and check if your device receives it."
-                        : "Enable notifications on this phone first.",
-                    action: "Push test"
-                }, { sound: result.sent > 0 });
+                    type: "success",
+                    title: "Phone alerts enabled",
+                    message: "This device is ready to receive request updates.",
+                    action: "Ready"
+                }, { sound: false });
             } catch (error) {
                 showNotification({
                     type: "warning",
-                    title: "Test failed",
-                    message: "The server could not send a push test right now.",
+                    title: "Alerts not ready",
+                    message: "Could not refresh phone alerts. Check notification permission and try again.",
                     action: "Check settings"
                 }, { sound: false });
             } finally {
                 liveButton.disabled = false;
-                liveButton.innerHTML = `<i class="fa-solid fa-bell"></i> Test phone alert`;
+                liveButton.innerHTML = `<i class="fa-solid fa-bell"></i> Alerts enabled`;
             }
         });
 
@@ -1023,7 +992,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 const status = await getPushStatus();
 
                 if ((status.subscriptionCount || 0) > 0) {
-                    showPushTestButton();
+                    showPushReadyButton(async (options = {}) => {
+                        const currentSubscription = await registration.pushManager.getSubscription();
+                        if (currentSubscription && options.force) {
+                            await currentSubscription.unsubscribe();
+                        }
+
+                        const subscription = await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
+                        });
+
+                        await savePushSubscription(subscription);
+                    });
                     return;
                 }
             } catch (error) {
@@ -1063,13 +1044,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            showPushTestButton(enablePush);
-            showNotification({
-                type: "success",
-                title: "Phone alerts enabled",
-                message: "Request notifications can now arrive even when the site is closed.",
-                action: "Ready"
-            }, { sound: true });
+            showPushReadyButton(enablePush);
+            if (!options.quiet) {
+                showNotification({
+                    type: "success",
+                    title: "Phone alerts enabled",
+                    message: "Request notifications can now arrive even when the site is closed.",
+                    action: "Ready"
+                }, { sound: true });
+            }
         };
 
         if (Notification.permission === "granted") {

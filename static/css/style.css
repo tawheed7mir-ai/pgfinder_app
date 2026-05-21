@@ -3391,7 +3391,6 @@ REQUESTS PAGE
     pointer-events:none;
 }
 
-.push-test-chip,
 .push-enable-chip{
     position:fixed;
     right:18px;
@@ -3421,7 +3420,6 @@ REQUESTS PAGE
     background:linear-gradient(135deg,#ff385c,#18a999);
 }
 
-.push-test-chip:disabled,
 .push-enable-chip:disabled{
     opacity:0.7;
     cursor:wait;
@@ -3449,7 +3447,6 @@ REQUESTS PAGE
         width:100%;
     }
 
-    .push-test-chip,
     .push-enable-chip{
         right:14px;
         bottom:14px;

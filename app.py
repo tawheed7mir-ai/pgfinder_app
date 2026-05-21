@@ -2742,24 +2742,6 @@ def push_status():
     })
 
 
-@app.route("/notifications/push/test", methods=["POST"])
-def test_push_notification():
-    if "user_id" not in session:
-        return jsonify({"error": "Login required"}), 401
-
-    result = send_web_push_to_user(
-        session["user_id"],
-        push_payload(
-            "PG Finder test alert",
-            "If this appears with the site closed, phone notifications are working.",
-            "/my-requests",
-            "info"
-        )
-    )
-
-    return jsonify(result)
-
-
 @app.route("/notifications/push/subscribe", methods=["POST"])
 def subscribe_push_notifications():
     if "user_id" not in session:
