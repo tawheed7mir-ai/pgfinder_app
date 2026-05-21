@@ -16,6 +16,9 @@ MAX_CONTENT_LENGTH=8388608
 CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
 CLOUDINARY_API_KEY=your-cloudinary-api-key
 CLOUDINARY_API_SECRET=your-cloudinary-api-secret
+VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PRIVATE_KEY=your-vapid-private-key
+VAPID_SUBJECT=mailto:you@example.com
 ```
 
 Generate a strong `SECRET_KEY`:
@@ -23,6 +26,14 @@ Generate a strong `SECRET_KEY`:
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
+
+Generate web push VAPID keys:
+
+```bash
+python -m py_vapid --gen
+```
+
+Set the generated public/private keys on Railway. Push notifications stay disabled until these variables are present.
 
 ## Install Dependencies
 

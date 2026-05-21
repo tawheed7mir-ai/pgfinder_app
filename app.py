@@ -2,16 +2,24 @@
 # FULL MYSQL UPDATED app.py
 # =========================
 
-from flask import Flask, render_template, request, redirect, session, flash, jsonify, make_response, abort, url_for
+from flask import Flask, render_template, request, redirect, session, flash, jsonify, make_response, abort, url_for, send_from_directory
 import mysql.connector
 import requests
 import os
 import math
 import secrets
+import json
+import hashlib
 from urllib.parse import unquote, urlparse
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+try:
+    from pywebpush import WebPushException, webpush
+except ImportError:
+    WebPushException = None
+    webpush = None
 
 try:
     import cloudinary
@@ -86,6 +94,10 @@ CLOUDINARY_API_KEY = os.environ.get("CLOUDINARY_API_KEY")
 CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET")
 CLOUDINARY_URL = os.environ.get("CLOUDINARY_URL")
 CLOUDINARY_ENABLED = bool(CLOUDINARY_URL) or all([CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET])
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "mailto:pgfinder@example.com")
+WEB_PUSH_ENABLED = bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY and webpush)
 
 if CLOUDINARY_ENABLED:
     if cloudinary is None:
@@ -369,6 +381,20 @@ def ensure_database_schema():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            endpoint TEXT NOT NULL,
+            endpoint_hash CHAR(64) NOT NULL,
+            p256dh TEXT NOT NULL,
+            auth TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_push_endpoint_hash (endpoint_hash)
+        )
+    """)
+
     create_index_if_missing(cursor, "users", "idx_users_role", ["role"])
     create_index_if_missing(cursor, "listings", "idx_listings_owner", ["owner_id"])
     create_index_if_missing(cursor, "listings", "idx_listings_location", ["location(120)"])
@@ -377,6 +403,7 @@ def ensure_database_schema():
     create_index_if_missing(cursor, "requests", "idx_requests_user", ["user_id"])
     create_index_if_missing(cursor, "requests", "idx_requests_status", ["status"])
     create_index_if_missing(cursor, "contact_messages", "idx_contact_messages_user", ["user_id"])
+    create_index_if_missing(cursor, "push_subscriptions", "idx_push_subscriptions_user", ["user_id"])
 
     conn.commit()
     conn.close()
@@ -598,6 +625,70 @@ def is_safe_redirect_path(path):
 
 def wants_json_response():
     return request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.accept_mimetypes.best == "application/json"
+
+
+def endpoint_hash(endpoint):
+    return hashlib.sha256((endpoint or "").encode("utf-8")).hexdigest()
+
+
+def push_payload(title, message, url="/", notification_type="info"):
+    return {
+        "title": title,
+        "message": message,
+        "url": url,
+        "type": notification_type,
+        "icon": url_for("static", filename="images/aesthetic-room-decor.jpg", _external=True),
+        "badge": url_for("static", filename="images/aesthetic-room-decor.jpg", _external=True)
+    }
+
+
+def delete_push_subscription(cursor, endpoint):
+    cursor.execute("""
+        DELETE FROM push_subscriptions
+        WHERE endpoint_hash=%s
+    """, (endpoint_hash(endpoint),))
+
+
+def send_web_push_to_user(user_id, payload):
+    if not WEB_PUSH_ENABLED:
+        return
+
+    conn = db()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT endpoint, p256dh, auth
+        FROM push_subscriptions
+        WHERE user_id=%s
+    """, (user_id,))
+
+    subscriptions = cursor.fetchall()
+
+    for subscription in subscriptions:
+        push_subscription = {
+            "endpoint": subscription["endpoint"],
+            "keys": {
+                "p256dh": subscription["p256dh"],
+                "auth": subscription["auth"]
+            }
+        }
+
+        try:
+            webpush(
+                subscription_info=push_subscription,
+                data=json.dumps(payload),
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": VAPID_SUBJECT}
+            )
+        except Exception as err:
+            status_code = getattr(getattr(err, "response", None), "status_code", None)
+            if WebPushException and isinstance(err, WebPushException) and status_code in (404, 410):
+                delete_push_subscription(cursor, subscription["endpoint"])
+            else:
+                app.logger.info("Web push failed for user %s: %s", user_id, err.__class__.__name__)
+
+    conn.commit()
+    conn.close()
 
 
 def calculate_distance_km(lat1, lon1, lat2, lon2):
@@ -2114,8 +2205,30 @@ def accept_request(id):
         """, (id, session["user_id"]))
 
     updated = cursor.rowcount
+
+    push_target = None
+    if updated:
+        cursor.execute("""
+            SELECT requests.user_id, listings.title AS listing_title
+            FROM requests
+            JOIN listings ON requests.listing_id = listings.id
+            WHERE requests.id=%s
+        """, (id,))
+        push_target = cursor.fetchone()
+
     conn.commit()
     conn.close()
+
+    if push_target:
+        send_web_push_to_user(
+            push_target["user_id"],
+            push_payload(
+                "Request accepted",
+                f"Your request for {push_target['listing_title']} was accepted.",
+                "/my-requests",
+                "request_accepted"
+            )
+        )
 
     if not updated:
         if wants_json_response():
@@ -2158,8 +2271,30 @@ def reject_request(id):
         """, (id, session["user_id"]))
 
     updated = cursor.rowcount
+
+    push_target = None
+    if updated:
+        cursor.execute("""
+            SELECT requests.user_id, listings.title AS listing_title
+            FROM requests
+            JOIN listings ON requests.listing_id = listings.id
+            WHERE requests.id=%s
+        """, (id,))
+        push_target = cursor.fetchone()
+
     conn.commit()
     conn.close()
+
+    if push_target:
+        send_web_push_to_user(
+            push_target["user_id"],
+            push_payload(
+                "Request rejected",
+                f"Your request for {push_target['listing_title']} was rejected.",
+                "/my-requests",
+                "request_rejected"
+            )
+        )
 
     if not updated:
         if wants_json_response():
@@ -2512,6 +2647,87 @@ def notifications_feed():
     return jsonify({"notifications": notifications})
 
 
+@app.route("/sw.js")
+def service_worker():
+    response = make_response(send_from_directory(app.static_folder, "sw.js"))
+    response.headers["Content-Type"] = "application/javascript; charset=utf-8"
+    response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+@app.route("/notifications/push/public-key")
+def push_public_key():
+    return jsonify({
+        "enabled": WEB_PUSH_ENABLED,
+        "publicKey": VAPID_PUBLIC_KEY if WEB_PUSH_ENABLED else ""
+    })
+
+
+@app.route("/notifications/push/subscribe", methods=["POST"])
+def subscribe_push_notifications():
+    if "user_id" not in session:
+        return jsonify({"error": "Login required"}), 401
+
+    ensure_database_schema()
+
+    subscription = request.get_json(silent=True) or {}
+    endpoint = subscription.get("endpoint")
+    keys = subscription.get("keys") or {}
+    p256dh = keys.get("p256dh")
+    auth = keys.get("auth")
+
+    if not endpoint or not p256dh or not auth:
+        return jsonify({"error": "Invalid push subscription"}), 400
+
+    conn = db()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        INSERT INTO push_subscriptions
+        (user_id, endpoint, endpoint_hash, p256dh, auth)
+        VALUES (%s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            user_id=VALUES(user_id),
+            endpoint=VALUES(endpoint),
+            p256dh=VALUES(p256dh),
+            auth=VALUES(auth)
+    """, (
+        session["user_id"],
+        endpoint,
+        endpoint_hash(endpoint),
+        p256dh,
+        auth
+    ))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"ok": True, "enabled": WEB_PUSH_ENABLED})
+
+
+@app.route("/notifications/push/unsubscribe", methods=["POST"])
+def unsubscribe_push_notifications():
+    if "user_id" not in session:
+        return jsonify({"error": "Login required"}), 401
+
+    ensure_database_schema()
+
+    subscription = request.get_json(silent=True) or {}
+    endpoint = subscription.get("endpoint")
+
+    if not endpoint:
+        return jsonify({"error": "Invalid push subscription"}), 400
+
+    conn = db()
+    cursor = conn.cursor(dictionary=True)
+    delete_push_subscription(cursor, endpoint)
+    conn.commit()
+    conn.close()
+
+    return jsonify({"ok": True})
+
+
 
 # Edit profile route: lets a signed-in user update their name, phone, and password.
 @app.route("/edit-profile", methods=["GET", "POST"])
@@ -2580,7 +2796,7 @@ def send_request(listing_id):
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
-        SELECT id, owner_id
+        SELECT id, owner_id, title
         FROM listings
         WHERE id=%s
     """, (listing_id,))
@@ -2637,6 +2853,16 @@ def send_request(listing_id):
             conn.commit()
             conn.close()
 
+            send_web_push_to_user(
+                listing["owner_id"],
+                push_payload(
+                    "Booking request resent",
+                    f"{session.get('username', 'A seeker')} resent a request for {listing['title']}.",
+                    "/requests",
+                    "owner_request"
+                )
+            )
+
             return redirect(f"/listing/{listing_id}?request=resent")
 
     # NEW REQUEST
@@ -2656,6 +2882,16 @@ def send_request(listing_id):
 
     conn.commit()
     conn.close()
+
+    send_web_push_to_user(
+        listing["owner_id"],
+        push_payload(
+            "New booking request",
+            f"{session.get('username', 'A seeker')} requested {listing['title']}.",
+            "/requests",
+            "owner_request"
+        )
+    )
 
     return redirect(f"/listing/{listing_id}?request=sent")
 
